@@ -1,16 +1,55 @@
 # pyp_platform
 
-A new Flutter project.
+🧼🏠 Home Services App (Flutter)
+Welcome to Home Services App, a mobile application built with Flutter that connects clients with professionals for on-demand home services — like cleaning, cooking, ironing, and more! 👨‍🍳🧹🧺
 
-## Getting Started
+🚀 Features
+📱 Client & Professional accounts
 
-This project is a starting point for a Flutter application.
+📍 Location-based service requests
 
-A few resources to get you started if this is your first Flutter project:
+🔐 Secure registration with address & verification
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+🧑‍🍳 Services: cleaning, cooking, ironing, etc.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+💬 In-app chat between client and professional
+
+💸 Negotiation system (you can bargain the price!)
+
+📦 Custom service fares
+
+📆 Scheduling & reminders
+
+🧾 Service history and reviews
+
+💳 Online payments
+
+⚠️ Emergency button and safety PIN
+
+🌍 Multi-platform support (Android/iOS)
+
+🔧 Built With
+💙 Flutter (Dart)
+
+📦 Firebase (for auth and backend)
+
+🌐 OpenStreetMap & Geolocator
+
+💬 Flutter Chat UI
+
+🛠️ Clean architecture & modular code
+
+👥 Roles
+Clients: Request home services and negotiate with professionals.
+
+Professionals: Offer services, earn commissions, manage schedule.
+
+📦 Future Plans
+🎁 Loyalty rewards
+
+📍 Multiple address support
+
+🧠 Smart recommendations
+
+🌐 Admin dashboard (web)
+
