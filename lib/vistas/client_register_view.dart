@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pyp_platform/vistas/Client_location.dart';
-  
+import 'package:pyp_platform/controladores/client_register_controller.dart';  // Importa el controlador
+
 class ClientRegisterView extends StatefulWidget {
   const ClientRegisterView({super.key});
 
@@ -9,34 +10,17 @@ class ClientRegisterView extends StatefulWidget {
 }
 
 class _ClientRegisterViewState extends State<ClientRegisterView> {
-  final _formKey = GlobalKey<FormState>();
+  late ClientRegisterController controller;
 
-  final TextEditingController usernameController = TextEditingController();
-  final TextEditingController fullNameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController postalCodeController = TextEditingController();
-
-  String? departamentoSeleccionado;
-  String? ciudadSeleccionada;
-
-  final Map<String, List<String>> departamentosYMunicipios = {
-    'Antioquia': ['Medellín', 'Envigado', 'Bello', 'Itagüí'],
-    'Cundinamarca': ['Bogotá', 'Soacha', 'Zipaquirá', 'Chía'],
-    'Valle del Cauca': ['Cali', 'Palmira', 'Buenaventura', 'Tuluá'],
-    'Bolívar': ['Cartagena', 'Magangué', 'Turbaco', 'Arjona', 'El Carmen de Bolívar', 'San Juan Nepomuceno'],
-    // Puedes seguir agregando otros departamentos y municipios si quieres
-  };
+  @override
+  void initState() {
+    super.initState();
+    controller = ClientRegisterController();
+  }
 
   @override
   void dispose() {
-    usernameController.dispose();
-    fullNameController.dispose();
-    emailController.dispose();
-    phoneController.dispose();
-    passwordController.dispose();
-    postalCodeController.dispose();
+    controller.dispose();
     super.dispose();
   }
 
@@ -52,31 +36,30 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Form(
-            key: _formKey,
+            key: controller.formKey,
             child: ListView(
               children: [
                 _buildTextField(
                   label: 'Nombre de usuario único',
-                  controller: usernameController,
+                  controller: controller.usernameController,
                 ),
                 _buildTextField(
                   label: 'Nombre completo',
-                  controller: fullNameController,
+                  controller: controller.fullNameController,
                 ),
                 _buildTextField(
                   label: 'Correo electrónico',
-                  controller: emailController,
+                  controller: controller.emailController,
                 ),
                 _buildTextField(
                   label: 'Teléfono',
-                  controller: phoneController,
+                  controller: controller.phoneController,
                 ),
                 _buildTextField(
                   label: 'Contraseña',
-                  controller: passwordController,
+                  controller: controller.passwordController,
                   obscureText: true,
                 ),
-                
                 const SizedBox(height: 16),
                 _buildDepartamentoDropdown(),
                 const SizedBox(height: 16),
@@ -84,19 +67,19 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   label: 'Código postal',
-                  controller: postalCodeController,
+                  controller: controller.postalCodeController,
                 ),
                 const SizedBox(height: 30),
                 ElevatedButton(
                   onPressed: () {
-                     if (_formKey.currentState?.validate() ?? false) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ClientLocationView(),
-                          ),
-                        );
-                      }
+                    if (controller.validateForm()) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ClientLocationView(),
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1F2937),
@@ -147,8 +130,8 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
         labelText: 'Departamento',
         border: OutlineInputBorder(),
       ),
-      value: departamentoSeleccionado,
-      items: departamentosYMunicipios.keys.map((String departamento) {
+      value: controller.departamentoSeleccionado,
+      items: controller.departamentosYMunicipios.keys.map((String departamento) {
         return DropdownMenuItem<String>(
           value: departamento,
           child: Text(departamento),
@@ -156,8 +139,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
       }).toList(),
       onChanged: (String? nuevoDepartamento) {
         setState(() {
-          departamentoSeleccionado = nuevoDepartamento;
-          ciudadSeleccionada = null;
+          controller.onDepartamentoChanged(nuevoDepartamento);
         });
       },
       validator: (value) {
@@ -175,25 +157,25 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
         labelText: 'Ciudad o Municipio',
         border: OutlineInputBorder(),
       ),
-      value: ciudadSeleccionada,
-      items: departamentoSeleccionado == null
+      value: controller.ciudadSeleccionada,
+      items: controller.departamentoSeleccionado == null
           ? []
-          : departamentosYMunicipios[departamentoSeleccionado]!
+          : controller.departamentosYMunicipios[controller.departamentoSeleccionado]!
               .map((String municipio) {
                 return DropdownMenuItem<String>(
                   value: municipio,
                   child: Text(municipio),
                 );
               }).toList(),
-      onChanged: departamentoSeleccionado == null
+      onChanged: controller.departamentoSeleccionado == null
           ? null
           : (String? nuevoMunicipio) {
               setState(() {
-                ciudadSeleccionada = nuevoMunicipio;
+                controller.onCiudadChanged(nuevoMunicipio);
               });
             },
       validator: (value) {
-        if (departamentoSeleccionado != null && (value == null || value.isEmpty)) {
+        if (controller.departamentoSeleccionado != null && (value == null || value.isEmpty)) {
           return 'Seleccione una ciudad o municipio';
         }
         return null;
