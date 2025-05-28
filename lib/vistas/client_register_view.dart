@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pyp_platform/controladores/client_register_controller.dart';  // Importa el controlador
+import 'package:pyp_platform/controladores/client_register_controller.dart';
 
 class ClientRegisterView extends StatefulWidget {
   const ClientRegisterView({super.key});
@@ -65,6 +65,10 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                 _buildMunicipioDropdown(),
                 const SizedBox(height: 16),
                 _buildTextField(
+                  label: 'Dirección',
+                  controller: controller.addressController,
+                ),
+                _buildTextField(
                   label: 'Código postal',
                   controller: controller.postalCodeController,
                 ),
@@ -72,9 +76,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                 ElevatedButton(
                   onPressed: () {
                     if (controller.validateForm()) {
-                      controller.printDatos(); // Imprime desde el controlador
-                      // Aquí podrías navegar a la siguiente pantalla o mostrar mensaje
-                      // Por ejemplo: Navigator.push(...)
+                      controller.printDatos();
                     }
                   },
                   style: ElevatedButton.styleFrom(
