@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:pyp_platform/vistas/Client_location.dart';
 import 'package:pyp_platform/controladores/client_register_controller.dart';  // Importa el controlador
 
 class ClientRegisterView extends StatefulWidget {
@@ -73,12 +72,9 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                 ElevatedButton(
                   onPressed: () {
                     if (controller.validateForm()) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ClientLocationView(),
-                        ),
-                      );
+                      controller.printDatos(); // Imprime desde el controlador
+                      // Aquí podrías navegar a la siguiente pantalla o mostrar mensaje
+                      // Por ejemplo: Navigator.push(...)
                     }
                   },
                   style: ElevatedButton.styleFrom(

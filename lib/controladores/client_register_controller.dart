@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart' as latlong;
 
 class ClientRegisterController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
@@ -21,9 +20,6 @@ class ClientRegisterController {
     'Valle del Cauca': ['Cali', 'Palmira', 'Buenaventura', 'Tuluá'],
     'Bolívar': ['Cartagena', 'Magangué', 'Turbaco', 'Arjona', 'El Carmen de Bolívar', 'San Juan Nepomuceno'],
   };
-
-  // Ubicación seleccionada en el mapa
-  latlong.LatLng? ubicacionSeleccionada;
 
   void dispose() {
     usernameController.dispose();
@@ -47,13 +43,17 @@ class ClientRegisterController {
     ciudadSeleccionada = nuevoMunicipio;
   }
 
-  // Método para guardar la ubicación seleccionada desde el mapa
-  void setUbicacionSeleccionada(latlong.LatLng ubicacion) {
-    ubicacionSeleccionada = ubicacion;
-  }
-
-  // Validación final para asegurarse que la ubicación también fue seleccionada
-  bool validateUbicacion() {
-    return ubicacionSeleccionada != null;
+  // Método para imprimir los datos ingresados (desde el controlador)
+  void printDatos() {
+    print('--- Datos del formulario ---');
+    print('Usuario: ${usernameController.text}');
+    print('Nombre completo: ${fullNameController.text}');
+    print('Correo: ${emailController.text}');
+    print('Teléfono: ${phoneController.text}');
+    print('Contraseña: ${passwordController.text}');
+    print('Departamento: $departamentoSeleccionado');
+    print('Ciudad o Municipio: $ciudadSeleccionada');
+    print('Código postal: ${postalCodeController.text}');
+    print('----------------------------');
   }
 }
