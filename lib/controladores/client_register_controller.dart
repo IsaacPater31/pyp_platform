@@ -48,66 +48,91 @@ class ClientRegisterController with ChangeNotifier {
     return formKey.currentState?.validate() ?? false;
   }
 
-  void printDatos() {
-    print('--- Datos de registro ---');
-    print('Usuario: ${usernameController.text}');
-    print('Nombre: ${fullNameController.text}');
-    print('Correo: ${emailController.text}');
-    print('Teléfono: ${phoneController.text}');
-    print('Contraseña: ${passwordController.text}');
-    print('Departamento: $departamentoSeleccionado');
-    print('Ciudad: $ciudadSeleccionada');
-    print('Dirección: ${addressController.text}');
-    print('Código postal: ${postalCodeController.text}');
-  }
-
-  Future<bool> enviarDatosAlApi(BuildContext context) async {
-    if (!validateForm()) return false;
-    
-    isLoading = true;
-    notifyListeners();
-    
-    try {
-      final url = Uri.parse('http://192.168.1.1/apispyp/register_client.php');
+    Future<bool> enviarDatosAlApi(BuildContext context) async {
+      if (!validateForm()) return false;
       
-      final response = await http.post(url, body: {
-        'username': usernameController.text.trim(),
-        'full_name': fullNameController.text.trim(),
-        'email': emailController.text.trim(),
-        'phone': phoneController.text.trim(),
-        'password': passwordController.text,
-        'departamento': departamentoSeleccionado ?? '',
-        'ciudad': ciudadSeleccionada ?? '',
-        'postal_code': postalCodeController.text.trim(),
-        'direccion': addressController.text.trim(),
-      });
-
-      final jsonResponse = json.decode(response.body);
+      isLoading = true;
+      notifyListeners();
       
-      if (response.statusCode == 200) {
-        if (jsonResponse['status'] == 'success') {
-          apiResponseMessage = jsonResponse['message'];
-          showSnackBar(context, 'Registro exitoso', Colors.green);
-          return true;
+      try {
+        final url = Uri.parse('http://192.168.1.1/apispyp/register_client.php');
+        
+        // Datos para depuración (sin contraseña real)
+        final requestData = {
+          'username': usernameController.text.trim(),
+          'full_name': fullNameController.text.trim(),
+          'email': emailController.text.trim(),
+          'phone': phoneController.text.trim(),
+          'password': '•••••••', // Oculta la contraseña real en logs
+          'departamento': departamentoSeleccionado ?? '',
+          'ciudad': ciudadSeleccionada ?? '',
+          'postal_code': postalCodeController.text.trim(),
+          'direccion': addressController.text.trim(),
+        };
+        
+        print('Enviando datos: ${requestData.toString()}');
+
+        final response = await http.post(
+          url,
+          body: {
+            ...requestData,
+            'password': passwordController.text, // Envía la contraseña real aquí
+          },
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        );
+
+        // Depuración detallada
+        debugPrint('Respuesta completa:');
+        debugPrint('Status: ${response.statusCode}');
+        debugPrint('Headers: ${response.headers}');
+        debugPrint('Body: ${response.body}');
+
+        // Manejo mejorado de la respuesta
+        if (response.statusCode == 200) {
+          try {
+            final jsonResponse = json.decode(response.body);
+            
+            if (jsonResponse['status'] == 'success') {
+              apiResponseMessage = 'Registro exitoso: ${jsonResponse['message']}';
+              if (context.mounted) {
+                showSnackBar(context, apiResponseMessage!, Colors.green);
+              }
+              return true;
+            } else {
+              apiResponseMessage = jsonResponse['message'] ?? 'Error desconocido del servidor';
+              if (context.mounted) {
+                showSnackBar(context, apiResponseMessage!, Colors.red);
+              }
+              return false;
+            }
+          } catch (e) {
+            apiResponseMessage = 'Error procesando respuesta: ${e.toString()}';
+            if (context.mounted) {
+              showSnackBar(context, apiResponseMessage!, Colors.orange);
+            }
+            return false;
+          }
         } else {
-          apiResponseMessage = jsonResponse['message'];
-          showSnackBar(context, apiResponseMessage!, Colors.red);
+          apiResponseMessage = 'Error de conexión (${response.statusCode})';
+          if (context.mounted) {
+            showSnackBar(context, apiResponseMessage!, Colors.red);
+          }
           return false;
         }
-      } else {
-        apiResponseMessage = 'Error en la conexión: ${response.statusCode}';
-        showSnackBar(context, apiResponseMessage!, Colors.red);
+      } catch (e) {
+        apiResponseMessage = 'Error inesperado: ${e.toString()}';
+        if (context.mounted) {
+          showSnackBar(context, apiResponseMessage!, Colors.red);
+        }
         return false;
+      } finally {
+        isLoading = false;
+        notifyListeners();
       }
-    } catch (e) {
-      apiResponseMessage = 'Error: ${e.toString()}';
-      showSnackBar(context, apiResponseMessage!, Colors.red);
-      return false;
-    } finally {
-      isLoading = false;
-      notifyListeners();
     }
-  }
 
   void showSnackBar(BuildContext context, String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(

@@ -10,6 +10,7 @@ class ClientRegisterView extends StatefulWidget {
 
 class _ClientRegisterViewState extends State<ClientRegisterView> {
   late ClientRegisterController controller;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -36,127 +37,145 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
         title: const Text('Registro de Cliente'),
         backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Form(
             key: controller.formKey,
             child: Stack(
               children: [
-                ListView(
-                  children: [
-                    _buildTextField(
-                      label: 'Nombre de usuario único',
-                      controller: controller.usernameController,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Este campo es obligatorio';
-                        }
-                        return null;
-                      },
-                    ),
-                    _buildTextField(
-                      label: 'Nombre completo',
-                      controller: controller.fullNameController,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Este campo es obligatorio';
-                        }
-                        return null;
-                      },
-                    ),
-                    _buildTextField(
-                      label: 'Correo electrónico',
-                      controller: controller.emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Este campo es obligatorio';
-                        }
-                        if (!value.contains('@') || !value.contains('.')) {
-                          return 'Ingrese un correo válido';
-                        }
-                        return null;
-                      },
-                    ),
-                    _buildTextField(
-                      label: 'Teléfono',
-                      controller: controller.phoneController,
-                      keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Este campo es obligatorio';
-                        }
-                        return null;
-                      },
-                    ),
-                    _buildTextField(
-                      label: 'Contraseña',
-                      controller: controller.passwordController,
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Este campo es obligatorio';
-                        }
-                        if (value.length < 6) {
-                          return 'La contraseña debe tener al menos 6 caracteres';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDepartamentoDropdown(),
-                    const SizedBox(height: 16),
-                    _buildMunicipioDropdown(),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      label: 'Dirección',
-                      controller: controller.addressController,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Este campo es obligatorio';
-                        }
-                        return null;
-                      },
-                    ),
-                    _buildTextField(
-                      label: 'Código postal',
-                      controller: controller.postalCodeController,
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Este campo es obligatorio';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 30),
-                    ElevatedButton(
-                      onPressed: controller.isLoading
-                          ? null
-                          : () async {
-                              final success = await controller.enviarDatosAlApi(context);
-                              if (success) {
-                                // Navegar a otra pantalla si es necesario
-                                // Navigator.pushReplacement(...);
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1F2937),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: 'Nombre de usuario único',
+                        controller: controller.usernameController,
+                        icon: Icons.person_outline,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Este campo es obligatorio';
+                          }
+                          if (value.length < 4) {
+                            return 'Mínimo 4 caracteres';
+                          }
+                          return null;
+                        },
                       ),
-                      child: controller.isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              'Registrarse',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: 'Nombre completo',
+                        controller: controller.fullNameController,
+                        icon: Icons.badge_outlined,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Este campo es obligatorio';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: 'Correo electrónico',
+                        controller: controller.emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        icon: Icons.email_outlined,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Este campo es obligatorio';
+                          }
+                          final emailRegex = RegExp(
+                            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                          );
+                          if (!emailRegex.hasMatch(value)) {
+                            return 'Ingrese un correo válido';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: 'Teléfono',
+                        controller: controller.phoneController,
+                        keyboardType: TextInputType.phone,
+                        icon: Icons.phone_outlined,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Este campo es obligatorio';
+                          }
+                          if (value.length < 10) {
+                            return 'Teléfono inválido';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildPasswordField(),
+                      const SizedBox(height: 24),
+                      _buildDepartamentoDropdown(),
+                      const SizedBox(height: 16),
+                      _buildMunicipioDropdown(),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: 'Dirección',
+                        controller: controller.addressController,
+                        icon: Icons.home_outlined,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Este campo es obligatorio';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: 'Código postal',
+                        controller: controller.postalCodeController,
+                        keyboardType: TextInputType.number,
+                        icon: Icons.numbers_outlined,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Este campo es obligatorio';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 32),
+                      ElevatedButton(
+                        onPressed: controller.isLoading
+                            ? null
+                            : () => _submitForm(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1F2937),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: controller.isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                              )
+                            : const Text(
+                                'REGISTRARSE',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
                 if (controller.isLoading)
                   const Center(child: CircularProgressIndicator()),
@@ -168,35 +187,99 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
     );
   }
 
+  Future<void> _submitForm(BuildContext context) async {
+    FocusScope.of(context).unfocus(); // Oculta el teclado
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+    
+    final success = await controller.enviarDatosAlApi(context);
+    
+    if (mounted) {
+      Navigator.of(context).pop(); // Cierra el diálogo de carga
+      
+      if (success) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
+    }
+  }
+
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
-    bool obscureText = false,
     TextInputType? keyboardType,
+    IconData? icon,
     String? Function(String?)? validator,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: icon != null ? Icon(icon) : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
         ),
-        validator: validator,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
+      validator: validator,
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return TextFormField(
+      controller: controller.passwordController,
+      obscureText: _obscurePassword,
+      decoration: InputDecoration(
+        labelText: 'Contraseña',
+        prefixIcon: const Icon(Icons.lock_outline),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Este campo es obligatorio';
+        }
+        if (value.length < 6) {
+          return 'La contraseña debe tener al menos 6 caracteres';
+        }
+        return null;
+      },
     );
   }
 
   Widget _buildDepartamentoDropdown() {
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Departamento',
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        prefixIcon: const Icon(Icons.map_outlined),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       ),
       value: controller.departamentoSeleccionado,
       items: controller.departamentosYMunicipios.keys.map((String departamento) {
@@ -219,10 +302,13 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
 
   Widget _buildMunicipioDropdown() {
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Ciudad o Municipio',
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        prefixIcon: const Icon(Icons.location_city_outlined),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       ),
       value: controller.ciudadSeleccionada,
       items: controller.departamentoSeleccionado == null
