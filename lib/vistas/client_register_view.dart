@@ -166,10 +166,10 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                                 ),
                               )
                             : const Text(
-                                'REGISTRARSE',
+                                'Registrarse',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                  color:Colors.white,
                                 ),
                               ),
                       ),
