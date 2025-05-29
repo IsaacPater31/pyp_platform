@@ -126,7 +126,7 @@ class RoleSelectionViewState extends State<RoleSelectionView> {
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Color.fromRGBO(0, 0, 0, 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
