@@ -77,6 +77,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                   onPressed: () {
                     if (controller.validateForm()) {
                       controller.printDatos();
+                      controller.enviarDatosAlApi();
                     }
                   },
                   style: ElevatedButton.styleFrom(

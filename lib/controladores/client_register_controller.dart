@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 
 class ClientRegisterController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
@@ -132,5 +135,37 @@ class ClientRegisterController {
     passwordController.dispose();
     addressController.dispose(); 
     postalCodeController.dispose();
+  }
+
+
+   Future<bool> enviarDatosAlApi() async {
+    final url = Uri.parse('http://192.168.1.1/apispyp/register_client.php'); 
+
+    final response = await http.post(url, body: {
+      'username': usernameController.text.trim(),
+      'full_name': fullNameController.text.trim(),
+      'email': emailController.text.trim(),
+      'phone': phoneController.text.trim(),
+      'password': passwordController.text,
+      'departamento': departamentoSeleccionado ?? '',
+      'ciudad': ciudadSeleccionada ?? '',
+      'postal_code': postalCodeController.text.trim(),
+      'direccion': addressController.text.trim(),
+    });
+
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+
+      if (jsonResponse['status'] == 'success') {
+        print('Registro exitoso');
+        return true;
+      } else {
+        print('Error API: ${jsonResponse['message']}');
+        return false;
+      }
+    } else {
+      print('Error en conexión: código ${response.statusCode}');
+      return false;
+    }
   }
 }
