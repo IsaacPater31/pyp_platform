@@ -187,27 +187,38 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
     );
   }
 
-  Future<void> _submitForm(BuildContext context) async {
-    FocusScope.of(context).unfocus(); // Oculta el teclado
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-    
-    final success = await controller.enviarDatosAlApi(context);
-    
-    if (mounted) {
-      Navigator.of(context).pop(); // Cierra el diálogo de carga
-      
-      if (success) {
-        Navigator.of(context).pushReplacementNamed('/home');
+        Future<void> _submitForm(BuildContext context) async {
+        FocusScope.of(context).unfocus(); // Oculta el teclado
+        
+        // Mostrar diálogo de carga
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+        
+        try {
+          final success = await controller.enviarDatosAlApi(context);
+          
+          if (!success && mounted) {
+            Navigator.of(context).pop(); // Cierra el diálogo solo si falló
+            // El controlador ya muestra los SnackBar de error
+          }
+          // En caso de éxito, el controlador maneja la navegación
+        } catch (e) {
+          if (mounted) {
+            Navigator.of(context).pop(); // Cierra el diálogo en caso de error
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error inesperado: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
       }
-    }
-  }
 
   Widget _buildTextField({
     required String label,

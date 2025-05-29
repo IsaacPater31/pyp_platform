@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:pyp_platform/vistas/register_view_success.dart';
+
 class ClientRegisterController with ChangeNotifier {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
@@ -48,7 +50,7 @@ class ClientRegisterController with ChangeNotifier {
     return formKey.currentState?.validate() ?? false;
   }
 
-    Future<bool> enviarDatosAlApi(BuildContext context) async {
+        Future<bool> enviarDatosAlApi(BuildContext context) async {
       if (!validateForm()) return false;
       
       isLoading = true;
@@ -70,7 +72,7 @@ class ClientRegisterController with ChangeNotifier {
           'direccion': addressController.text.trim(),
         };
         
-        print('Enviando datos: ${requestData.toString()}');
+        debugPrint('Enviando datos de registro: $requestData');
 
         final response = await http.post(
           url,
@@ -85,24 +87,30 @@ class ClientRegisterController with ChangeNotifier {
         );
 
         // Depuración detallada
-        debugPrint('Respuesta completa:');
-        debugPrint('Status: ${response.statusCode}');
-        debugPrint('Headers: ${response.headers}');
-        debugPrint('Body: ${response.body}');
+        debugPrint('Respuesta del servidor:');
+        debugPrint('Código de estado: ${response.statusCode}');
+        debugPrint('Cabeceras: ${response.headers}');
+        debugPrint('Cuerpo: ${response.body}');
 
-        // Manejo mejorado de la respuesta
         if (response.statusCode == 200) {
           try {
             final jsonResponse = json.decode(response.body);
             
             if (jsonResponse['status'] == 'success') {
-              apiResponseMessage = 'Registro exitoso: ${jsonResponse['message']}';
+              debugPrint('Registro exitoso. Datos: $jsonResponse');
+              
+              // Redirigir a pantalla de éxito sin mostrar SnackBar
               if (context.mounted) {
-                showSnackBar(context, apiResponseMessage!, Colors.green);
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const RegisterSuccessView(),
+                  ),
+                );
               }
               return true;
             } else {
               apiResponseMessage = jsonResponse['message'] ?? 'Error desconocido del servidor';
+              debugPrint('Error en el registro: $apiResponseMessage');
               if (context.mounted) {
                 showSnackBar(context, apiResponseMessage!, Colors.red);
               }
@@ -110,6 +118,7 @@ class ClientRegisterController with ChangeNotifier {
             }
           } catch (e) {
             apiResponseMessage = 'Error procesando respuesta: ${e.toString()}';
+            debugPrint('Error decodificando JSON: $apiResponseMessage');
             if (context.mounted) {
               showSnackBar(context, apiResponseMessage!, Colors.orange);
             }
@@ -117,6 +126,7 @@ class ClientRegisterController with ChangeNotifier {
           }
         } else {
           apiResponseMessage = 'Error de conexión (${response.statusCode})';
+          debugPrint('Error HTTP: $apiResponseMessage');
           if (context.mounted) {
             showSnackBar(context, apiResponseMessage!, Colors.red);
           }
@@ -124,6 +134,7 @@ class ClientRegisterController with ChangeNotifier {
         }
       } catch (e) {
         apiResponseMessage = 'Error inesperado: ${e.toString()}';
+        debugPrint('Excepción no controlada: $apiResponseMessage');
         if (context.mounted) {
           showSnackBar(context, apiResponseMessage!, Colors.red);
         }
