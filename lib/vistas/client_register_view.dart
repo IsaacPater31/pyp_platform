@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pyp_platform/controladores/client_register_controller.dart';
+import 'package:pyp_platform/vistas/client_register_location_view.dart';
 
 class ClientRegisterView extends StatefulWidget {
   const ClientRegisterView({super.key});
@@ -16,232 +17,270 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
   void initState() {
     super.initState();
     controller = ClientRegisterController();
-    controller.addListener(_handleControllerChange);
+    controller.addListener(() {
+      debugPrint('Controller updated - Loading: ${controller.isLoading}');
+      setState(() {});
+    });
   }
 
   @override
   void dispose() {
-    controller.removeListener(_handleControllerChange);
     controller.dispose();
     super.dispose();
   }
 
-  void _handleControllerChange() {
-    if (mounted) setState(() {});
+  Future<void> _submitForm(BuildContext context) async {
+    FocusScope.of(context).unfocus();
+    if (!controller.validateForm()) {
+      debugPrint('Form validation failed');
+      return;
+    }
+
+    debugPrint('Starting basic data validation...');
+    _showLoadingDialog(context);
+
+    try {
+      final isValid = await controller.validarDatosBasicos(context);
+      if (!isValid || !mounted) {
+        debugPrint('Basic validation failed');
+        return;
+      }
+
+      if (mounted) Navigator.pop(context); // Cerrar loading
+      
+      debugPrint('Navigating to location view...');
+      final success = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ClientRegisterLocationView(
+            onLocationSelected: (latLng, address) {
+              debugPrint('Location selected: $latLng');
+              debugPrint('Full address: $address');
+              controller.setLocation(latLng, address);
+              Navigator.pop(context, true);
+            },
+          ),
+        ),
+      );
+
+      if (success == true && mounted) {
+        debugPrint('Completing registration...');
+        _showLoadingDialog(context);
+        final registrationSuccess = await controller.completeRegistration(context);
+        if (mounted) Navigator.pop(context); // Cerrar loading
+        
+        if (registrationSuccess && mounted) {
+          debugPrint('Registration successful');
+          Navigator.pop(context); // Cerrar vista de registro
+          _showSuccessMessage(context);
+        } else {
+          debugPrint('Registration failed');
+          _showErrorMessage(context, 'Error al completar el registro');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error in registration process: ${e.toString()}');
+      if (mounted) {
+        Navigator.pop(context);
+        _showErrorMessage(context, 'Error: ${e.toString()}');
+      }
+    }
+  }
+
+  void _showLoadingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1F2937)),
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessMessage(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Registro completado exitosamente'),
+        backgroundColor: Color(0xFF10B981),
+      ),
+    );
+  }
+
+  void _showErrorMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFFEF4444),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
-        title: const Text('Registro de Cliente'),
-        backgroundColor: const Color(0xFF1F2937),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Registro de Cliente',
+          style: TextStyle(
+            color: Color(0xFF1F2937),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF1F2937)),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Form(
-            key: controller.formKey,
-            child: Stack(
-              children: [
-                SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        label: 'Nombre de usuario único',
-                        controller: controller.usernameController,
-                        icon: Icons.person_outline,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Este campo es obligatorio';
-                          }
-                          if (value.length < 4) {
-                            return 'Mínimo 4 caracteres';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        label: 'Nombre completo',
-                        controller: controller.fullNameController,
-                        icon: Icons.badge_outlined,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Este campo es obligatorio';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        label: 'Correo electrónico',
-                        controller: controller.emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        icon: Icons.email_outlined,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Este campo es obligatorio';
-                          }
-                          final emailRegex = RegExp(
-                            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-                          );
-                          if (!emailRegex.hasMatch(value)) {
-                            return 'Ingrese un correo válido';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        label: 'Teléfono',
-                        controller: controller.phoneController,
-                        keyboardType: TextInputType.phone,
-                        icon: Icons.phone_outlined,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Este campo es obligatorio';
-                          }
-                          if (value.length < 10) {
-                            return 'Teléfono inválido';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildPasswordField(),
-                      const SizedBox(height: 24),
-                      _buildDepartamentoDropdown(),
-                      const SizedBox(height: 16),
-                      _buildMunicipioDropdown(),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        label: 'Dirección',
-                        controller: controller.addressController,
-                        icon: Icons.home_outlined,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Este campo es obligatorio';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        label: 'Código postal',
-                        controller: controller.postalCodeController,
-                        keyboardType: TextInputType.number,
-                        icon: Icons.numbers_outlined,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Este campo es obligatorio';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                      ElevatedButton(
-                        onPressed: controller.isLoading
-                            ? null
-                            : () => _submitForm(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1F2937),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 2,
-                        ),
-                        child: controller.isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 3,
-                                ),
-                              )
-                            : const Text(
-                                'Registrarse',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color:Colors.white,
-                                ),
-                              ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Form(
+          key: controller.formKey,
+          child: Column(
+            children: [
+              _buildTextField(
+                label: 'Nombre de usuario',
+                controller: controller.usernameController,
+                icon: Icons.person_outline,
+                validator: (value) => value!.isEmpty ? 'Requerido' : null,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: 'Nombre completo',
+                controller: controller.fullNameController,
+                icon: Icons.badge_outlined,
+                validator: (value) => value!.isEmpty ? 'Requerido' : null,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: 'Correo electrónico',
+                controller: controller.emailController,
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) => value!.contains('@') ? null : 'Email inválido',
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: 'Teléfono',
+                controller: controller.phoneController,
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+                validator: (value) => value!.length >= 10 ? null : 'Mínimo 10 dígitos',
+              ),
+              const SizedBox(height: 16),
+              _buildDateField(context),
+              const SizedBox(height: 16),
+              _buildPasswordField(),
+              const SizedBox(height: 16),
+              _buildDropdownDepartamento(),
+              const SizedBox(height: 16),
+              _buildDropdownCiudad(),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: 'Código postal',
+                controller: controller.postalCodeController,
+                icon: Icons.numbers_outlined,
+                keyboardType: TextInputType.number,
+                validator: (value) => value!.isEmpty ? 'Requerido' : null,
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: controller.isLoading ? null : () => _submitForm(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1F2937),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
+                  child: controller.isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Continuar',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,                         
+                          ),
+                        ),
                 ),
-                if (controller.isLoading)
-                  const Center(child: CircularProgressIndicator()),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-        Future<void> _submitForm(BuildContext context) async {
-        FocusScope.of(context).unfocus(); // Oculta el teclado
-        
-        // Mostrar diálogo de carga
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
-        
-        try {
-          final success = await controller.enviarDatosAlApi(context);
-          
-          if (!success && mounted) {
-            Navigator.of(context).pop(); // Cierra el diálogo solo si falló
-            // El controlador ya muestra los SnackBar de error
-          }
-          // En caso de éxito, el controlador maneja la navegación
-        } catch (e) {
-          if (mounted) {
-            Navigator.of(context).pop(); // Cierra el diálogo en caso de error
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error inesperado: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      }
-
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
+    required IconData icon,
+    required String? Function(String?)? validator,
     TextInputType? keyboardType,
-    IconData? icon,
-    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: icon != null ? Icon(icon) : null,
+        prefixIcon: Icon(icon, color: const Color(0xFF6B7280)),
+        filled: true,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
       ),
       validator: validator,
+      style: const TextStyle(color: Color(0xFF1F2937)),
+    );
+  }
+
+  Widget _buildDateField(BuildContext context) {
+    return TextFormField(
+      controller: controller.birthDateController,
+      readOnly: true,
+      decoration: InputDecoration(
+        labelText: 'Fecha de nacimiento',
+        prefixIcon: const Icon(Icons.calendar_today_outlined, color: Color(0xFF6B7280)),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+      ),
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime(1900),
+          lastDate: DateTime.now(),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: const ColorScheme.light(
+                  primary: Color(0xFF1F2937),
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (date != null) {
+          controller.birthDateController.text =
+              "${date.day}/${date.month}/${date.year}";
+        }
+      },
+      validator: (value) => value!.isEmpty ? 'Requerido' : null,
+      style: const TextStyle(color: Color(0xFF1F2937)),
     );
   }
 
@@ -251,98 +290,85 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
       obscureText: _obscurePassword,
       decoration: InputDecoration(
         labelText: 'Contraseña',
-        prefixIcon: const Icon(Icons.lock_outline),
+        prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF6B7280)),
         suffixIcon: IconButton(
           icon: Icon(
-            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            color: const Color(0xFF6B7280),
           ),
-          onPressed: () {
-            setState(() {
-              _obscurePassword = !_obscurePassword;
-            });
-          },
+          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
+        filled: true,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Este campo es obligatorio';
-        }
-        if (value.length < 6) {
-          return 'La contraseña debe tener al menos 6 caracteres';
-        }
-        return null;
-      },
+      validator: (value) => value!.length >= 6 ? null : 'Mínimo 6 caracteres',
+      style: const TextStyle(color: Color(0xFF1F2937)),
     );
   }
 
-  Widget _buildDepartamentoDropdown() {
+  Widget _buildDropdownDepartamento() {
     return DropdownButtonFormField<String>(
+      value: controller.departamentoSeleccionado,
       decoration: InputDecoration(
         labelText: 'Departamento',
-        prefixIcon: const Icon(Icons.map_outlined),
+        prefixIcon: const Icon(Icons.map_outlined, color: Color(0xFF6B7280)),
+        filled: true,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
       ),
-      value: controller.departamentoSeleccionado,
-      items: controller.departamentosYMunicipios.keys.map((String departamento) {
+      items: controller.departamentosYMunicipios.keys.map((String value) {
         return DropdownMenuItem<String>(
-          value: departamento,
-          child: Text(departamento),
+          value: value,
+          child: Text(value, style: const TextStyle(color: Color(0xFF1F2937))),
         );
       }).toList(),
-      onChanged: (String? nuevoDepartamento) {
-        controller.onDepartamentoChanged(nuevoDepartamento);
-      },
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Seleccione un departamento';
-        }
-        return null;
-      },
+      onChanged: controller.onDepartamentoChanged,
+      validator: (value) => value == null ? 'Seleccione un departamento' : null,
+      dropdownColor: Colors.white,
+      style: const TextStyle(color: Color(0xFF1F2937)),
     );
   }
 
-  Widget _buildMunicipioDropdown() {
+  Widget _buildDropdownCiudad() {
     return DropdownButtonFormField<String>(
+      value: controller.ciudadSeleccionada,
       decoration: InputDecoration(
-        labelText: 'Ciudad o Municipio',
-        prefixIcon: const Icon(Icons.location_city_outlined),
+        labelText: 'Ciudad/Municipio',
+        prefixIcon: const Icon(Icons.location_city_outlined, color: Color(0xFF6B7280)),
+        filled: true,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
       ),
-      value: controller.ciudadSeleccionada,
       items: controller.departamentoSeleccionado == null
           ? []
           : controller.departamentosYMunicipios[controller.departamentoSeleccionado]!
-              .map((String municipio) {
+              .map((String value) {
                 return DropdownMenuItem<String>(
-                  value: municipio,
-                  child: Text(municipio),
+                  value: value,
+                  child: Text(value, style: const TextStyle(color: Color(0xFF1F2937))),
                 );
               }).toList(),
-      onChanged: controller.departamentoSeleccionado == null
-          ? null
-          : (String? nuevoMunicipio) {
-              controller.onCiudadChanged(nuevoMunicipio);
-            },
-      validator: (value) {
-        if (controller.departamentoSeleccionado != null && (value == null || value.isEmpty)) {
-          return 'Seleccione una ciudad o municipio';
-        }
-        return null;
-      },
-      disabledHint: const Text('Seleccione primero un departamento'),
+      onChanged: controller.onCiudadChanged,
+      validator: (value) => value == null ? 'Seleccione una ciudad' : null,
+      disabledHint: const Text('Seleccione un departamento primero', style: TextStyle(color: Color(0xFF6B7280))),
+      dropdownColor: Colors.white,
+      style: const TextStyle(color: Color(0xFF1F2937)),
     );
   }
 }

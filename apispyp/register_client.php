@@ -1,117 +1,141 @@
 <?php
-// Limpiar cualquier buffer de salida previo
-while (ob_get_level() > 0) {
-    ob_end_clean();
-}
-
-// Configurar headers CORS
+header('Content-Type: application/json; charset=UTF-8');
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json; charset=UTF-8");
 
-// Incluir conexión a la base de datos
-require_once "connection.php";
+require 'connection.php';
 
-// Función para enviar respuestas JSON consistentes
-function sendJsonResponse($status, $message, $additionalData = []) {
-    $response = array_merge([
-        'status' => $status,
-        'message' => $message,
-        'timestamp' => date('Y-m-d H:i:s')
-    ], $additionalData);
-    
-    // Limpiar buffer nuevamente por si acaso
-    if (ob_get_length() > 0) {
-        ob_clean();
-    }
-    
-    echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$response = [
+    'success' => false,
+    'message' => '',
+    'errors' => []
+];
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $response['message'] = 'Método no permitido';
+    http_response_code(405);
+    echo json_encode($response);
     exit;
 }
 
-// Verificar si hubo error de conexión con la BD
-if (isset($GLOBALS['DB_CONNECTION_ERROR'])) {
-    sendJsonResponse("error", $GLOBALS['DB_CONNECTION_ERROR']);
+$json = file_get_contents('php://input');
+$data = json_decode($json, true);
+
+if (json_last_error() !== JSON_ERROR_NONE) {
+    $response['message'] = 'JSON inválido';
+    http_response_code(400);
+    echo json_encode($response);
+    exit;
 }
 
-// Verificar método POST
-if ($_SERVER["REQUEST_METHOD"] != "POST") {
-    sendJsonResponse("error", "Método no permitido. Usa POST");
-}
+// Validación de campos requeridos
+$errors = [];
+$requiredFields = ['username', 'email', 'password', 'latitud', 'longitud'];
 
-// Leer datos del body
-$input = json_decode(file_get_contents("php://input"), true) ?? $_POST;
-
-// Validar campos obligatorios
-$requiredFields = ['username', 'full_name', 'email', 'phone', 'password', 'departamento', 'ciudad', 'postal_code', 'direccion'];
-$missingFields = [];
 foreach ($requiredFields as $field) {
-    if (empty($input[$field])) {
-        $missingFields[] = $field;
+    if (empty($data[$field])) {
+        $errors[$field] = "Campo requerido";
     }
 }
 
-if (!empty($missingFields)) {
-    sendJsonResponse("error", "Faltan campos obligatorios: " . implode(', ', $missingFields));
+if (!filter_var($data['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
+    $errors['email'] = 'Email inválido';
 }
 
-// Validar formato de email
-if (!filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
-    sendJsonResponse("error", "El formato del correo electrónico no es válido");
+if (strlen($data['password'] ?? '') < 6) {
+    $errors['password'] = 'Mínimo 6 caracteres';
 }
 
-// Escapar datos para evitar inyecciones SQL
-$username = $conn->real_escape_string($input['username']);
-$full_name = $conn->real_escape_string($input['full_name']);
-$email = $conn->real_escape_string($input['email']);
-$phone = $conn->real_escape_string($input['phone']);
-$departamento = $conn->real_escape_string($input['departamento']);
-$ciudad = $conn->real_escape_string($input['ciudad']);
-$postal_code = $conn->real_escape_string($input['postal_code']);
-$direccion = $conn->real_escape_string($input['direccion']);
+if (!empty($errors)) {
+    $response['errors'] = $errors;
+    $response['message'] = 'Error en los datos';
+    http_response_code(400);
+    echo json_encode($response);
+    exit;
+}
 
-// Verificar si el usuario o email ya existen
-$checkQuery = $conn->prepare("SELECT username, email FROM clientes WHERE username = ? OR email = ?");
-$checkQuery->bind_param("ss", $username, $email);
-$checkQuery->execute();
-$checkResult = $checkQuery->get_result();
-
-if ($checkResult->num_rows > 0) {
-    $existing = $checkResult->fetch_assoc();
-    $errors = [];
+try {
+    // Verificar si el usuario o email ya existen
+    $checkQuery = "SELECT id FROM clientes WHERE username = ? OR email = ?";
+    $stmt = $conn->prepare($checkQuery);
     
-    if (strcasecmp($existing['username'], $username) === 0) {
-        $errors[] = "El nombre de usuario ya está en uso";
-    }
-    if (strcasecmp($existing['email'], $email) === 0) {
-        $errors[] = "El correo electrónico ya está registrado";
-    }
+    // Asegurar que los valores no sean nulos
+    $username = $data['username'] ?? '';
+    $email = $data['email'] ?? '';
     
-    sendJsonResponse("error", implode(" y ", $errors));
+    $stmt->bind_param("ss", $username, $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $response['message'] = 'El usuario o email ya existen';
+        http_response_code(409);
+        echo json_encode($response);
+        exit;
+    }
+    $stmt->close();
+
+    // Hash de la contraseña
+    $passwordHash = password_hash($data['password'], PASSWORD_DEFAULT);
+
+    // Convertir fecha al formato MySQL (YYYY-MM-DD)
+    $fechaNacimiento = null;
+    if (!empty($data['fecha_nacimiento'])) {
+        $fechaNacimiento = date('Y-m-d', strtotime($data['fecha_nacimiento']));
+    }
+
+    // Insertar el nuevo usuario
+    $insertQuery = "INSERT INTO clientes (
+        username, full_name, email, phone, password, fecha_nacimiento,
+        departamento, ciudad, postal_code, detalle_direccion, ubicacion
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_GeomFromText(?))";
+    
+    $point = "POINT(" . floatval($data['latitud']) . " " . floatval($data['longitud']) . ")";
+    
+    $stmt = $conn->prepare($insertQuery);
+    
+    // Asegurar que ningún valor sea nulo
+    $full_name = $data['full_name'] ?? '';
+    $phone = $data['phone'] ?? '';
+    $departamento = $data['departamento'] ?? '';
+    $ciudad = $data['ciudad'] ?? '';
+    $postal_code = $data['postal_code'] ?? '';
+    $detalle_direccion = $data['detalle_direccion'] ?? '';
+    
+    // Para campos que pueden ser NULL en la BD, usar una variable especial
+    $fechaNacimientoForBind = $fechaNacimiento ?? null;
+    
+    // Necesitamos una variable temporal para el campo que puede ser NULL
+    $stmt->bind_param("sssssssssss", 
+        $data['username'],
+        $full_name,
+        $data['email'],
+        $phone,
+        $passwordHash,
+        $fechaNacimientoForBind,
+        $departamento,
+        $ciudad,
+        $postal_code,
+        $detalle_direccion,
+        $point
+    );
+
+    if ($stmt->execute()) {
+        $response['success'] = true;
+        $response['message'] = 'Registro exitoso';
+        http_response_code(201);
+    } else {
+        throw new Exception("Error al ejecutar la consulta: " . $stmt->error);
+    }
+} catch (Exception $e) {
+    $response['message'] = 'Error en el servidor: ' . $e->getMessage();
+    error_log($e->getMessage());
+    http_response_code(500);
+} finally {
+    if (isset($stmt)) $stmt->close();
+    $conn->close();
 }
 
-// Hashear la contraseña
-$hash_password = password_hash($input['password'], PASSWORD_DEFAULT);
-
-// Preparar inserción
-$stmt = $conn->prepare("INSERT INTO clientes (username, full_name, email, phone, password, departamento, ciudad, postal_code, direccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-if (!$stmt) {
-    sendJsonResponse("error", "Error al preparar la consulta: " . $conn->error);
-}
-
-$stmt->bind_param("sssssssss", $username, $full_name, $email, $phone, $hash_password, $departamento, $ciudad, $postal_code, $direccion);
-
-// Ejecutar y responder
-if ($stmt->execute()) {
-    sendJsonResponse("success", "Cliente registrado correctamente", [
-        'client_id' => $stmt->insert_id,
-        'username' => $username,
-        'email' => $email
-    ]);
-} else {
-    sendJsonResponse("error", "Error al registrar: " . $stmt->error);
-}
-
+echo json_encode($response);
 ?>
