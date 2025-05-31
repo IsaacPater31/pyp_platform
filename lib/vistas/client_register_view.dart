@@ -30,62 +30,53 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
   }
 
   Future<void> _submitForm(BuildContext context) async {
-    FocusScope.of(context).unfocus();
-    if (!controller.validateForm()) {
-      debugPrint('Form validation failed');
+  FocusScope.of(context).unfocus();
+  if (!controller.validateForm()) return;
+
+  _showLoadingDialog(context);
+  
+  try {
+    final isValid = await controller.validarDatosBasicos(context);
+    if (!mounted) return;
+    
+    Navigator.pop(context); // Cerrar loading
+    
+    if (!isValid) {
+      debugPrint('Validación fallida - No navegar');
       return;
     }
 
-    debugPrint('Starting basic data validation...');
-    _showLoadingDialog(context);
-
-    try {
-      final isValid = await controller.validarDatosBasicos(context);
-      if (!isValid || !mounted) {
-        debugPrint('Basic validation failed');
-        return;
-      }
-
-      if (mounted) Navigator.pop(context); // Cerrar loading
-      
-      debugPrint('Navigating to location view...');
-      final success = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ClientRegisterLocationView(
-            onLocationSelected: (latLng, address) {
-              debugPrint('Location selected: $latLng');
-              debugPrint('Full address: $address');
-              controller.setLocation(latLng, address);
-              Navigator.pop(context, true);
-            },
-          ),
+    // Solo navegar si la validación fue exitosa
+    final locationSelected = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ClientRegisterLocationView(
+          onLocationSelected: (latLng, address) {
+            controller.setLocation(latLng, address);
+            Navigator.pop(context, true);
+          },
         ),
-      );
+      ),
+    );
 
-      if (success == true && mounted) {
-        debugPrint('Completing registration...');
-        _showLoadingDialog(context);
-        final registrationSuccess = await controller.completeRegistration(context);
-        if (mounted) Navigator.pop(context); // Cerrar loading
-        
-        if (registrationSuccess && mounted) {
-          debugPrint('Registration successful');
-          Navigator.pop(context); // Cerrar vista de registro
-          _showSuccessMessage(context);
-        } else {
-          debugPrint('Registration failed');
-          _showErrorMessage(context, 'Error al completar el registro');
-        }
-      }
-    } catch (e) {
-      debugPrint('Error in registration process: ${e.toString()}');
-      if (mounted) {
-        Navigator.pop(context);
-        _showErrorMessage(context, 'Error: ${e.toString()}');
+    if (locationSelected == true && mounted) {
+      _showLoadingDialog(context);
+      final success = await controller.completeRegistration(context);
+      if (!mounted) return;
+      
+      Navigator.pop(context); // Cerrar loading
+      if (success) {
+        Navigator.pop(context); // Cerrar vista de registro
+        _showSuccessMessage(context);
       }
     }
+  } catch (e) {
+    if (mounted) {
+      Navigator.pop(context);
+      _showErrorMessage(context, 'Error: ${e.toString()}');
+    }
   }
+}
 
   void _showLoadingDialog(BuildContext context) {
     showDialog(

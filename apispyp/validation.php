@@ -60,20 +60,24 @@ if ($email) {
     $stmt->close();
 }
 
-// Crear mensaje final
+// Crear mensaje final y determinar si es un error
 if ($username_in_use && $email_in_use) {
     $message = 'El nombre de usuario y el correo electrónico ya están en uso.';
+    $is_error = true;
 } elseif ($username_in_use) {
     $message = 'El nombre de usuario ya está en uso.';
+    $is_error = true;
 } elseif ($email_in_use) {
     $message = 'El correo electrónico ya está en uso.';
+    $is_error = true;
 } else {
     $message = 'Disponible para registro.';
+    $is_error = false;
 }
 
-// Respuesta simplificada
+// Respuesta con lógica corregida
 echo json_encode([
-    'error' => false,
+    'error' => $is_error, // Ahora sí refleja correctamente si hay duplicados
     'message' => $message
 ]);
 
