@@ -103,84 +103,93 @@ class ClientRegisterController with ChangeNotifier {
       }
 
   Future<bool> completeRegistration(BuildContext context) async {
-    if (selectedLocation == null) {
+  if (selectedLocation == null) {
+    if (context.mounted) {
       showSnackBar(context, 'Debes seleccionar una ubicación', Colors.red);
-      return false;
+    }
+    return false;
+  }
+
+  isLoading = true;
+  notifyListeners();
+
+  try {
+    final url = Uri.parse('http://192.168.1.2/apispyp/register_client.php');
+    
+    String formattedDate = '';
+    if (birthDateController.text.isNotEmpty) {
+      final parts = birthDateController.text.split('/');
+      if (parts.length == 3) {
+        formattedDate = '${parts[2]}-${parts[1]}-${parts[0]}';
+      }
     }
 
-    isLoading = true;
-    notifyListeners();
+    final requestBody = {
+      'username': usernameController.text.trim(),
+      'full_name': fullNameController.text.trim(),
+      'email': emailController.text.trim(),
+      'phone': phoneController.text.trim(),
+      'password': passwordController.text,
+      'fecha_nacimiento': formattedDate,
+      'departamento': departamentoSeleccionado ?? '',
+      'ciudad': ciudadSeleccionada ?? '',
+      'postal_code': postalCodeController.text.trim(),
+      'detalle_direccion': addressDetailController.text.trim(),
+      'latitud': selectedLocation!.latitude.toString(),
+      'longitud': selectedLocation!.longitude.toString(),
+    };
 
-    try {
-      final url = Uri.parse('http://192.168.1.2/apispyp/register_client.php');
-      
-      // Convertir fecha al formato YYYY-MM-DD que espera MySQL
-      String formattedDate = '';
-      try {
-        if (birthDateController.text.isNotEmpty) {
-          final parts = birthDateController.text.split('/');
-          formattedDate = '${parts[2]}-${parts[1]}-${parts[0]}';
-        }
-      } catch (e) {
-        debugPrint('Error formateando fecha: $e');
-      }
+    debugPrint('Datos a enviar: $requestBody');
 
-      final requestBody = {
-        'username': usernameController.text.trim(),
-        'full_name': fullNameController.text.trim(),
-        'email': emailController.text.trim(),
-        'phone': phoneController.text.trim(),
-        'password': passwordController.text,
-        'fecha_nacimiento': formattedDate,
-        'departamento': departamentoSeleccionado ?? '',
-        'ciudad': ciudadSeleccionada ?? '',
-        'postal_code': postalCodeController.text.trim(),
-        'detalle_direccion': addressDetailController.text.trim(),
-        'latitud': selectedLocation!.latitude.toString(),
-        'longitud': selectedLocation!.longitude.toString(),
-      };
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      body: jsonEncode(requestBody),
+    ).timeout(const Duration(seconds: 30));
 
-      debugPrint('Datos a enviar: $requestBody');
+    debugPrint('Respuesta del servidor: ${response.statusCode} - ${response.body}');
 
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(requestBody),
-      ).timeout(const Duration(seconds: 30));
-
-      debugPrint('Respuesta del servidor: ${response.statusCode} - ${response.body}');
-
-      if (response.statusCode == 201) {
-        final jsonResponse = jsonDecode(response.body);
-        if (jsonResponse['success'] == true) {
+    final jsonResponse = jsonDecode(response.body);
+    
+    if (response.statusCode == 201 && jsonResponse['success'] == true) {
+      // Navegación diferida hasta después del frame actual
+      if (context.mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
           if (context.mounted) {
-            Navigator.of(context).pushReplacement(
+            Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const RegisterSuccessView()),
+              (route) => false,
             );
           }
-          return true;
-        } else {
-          apiResponseMessage = jsonResponse['message'] ?? 'Error en el registro';
-        }
-      } else {
-        apiResponseMessage = 'Error del servidor (${response.statusCode})';
+        });
       }
+      return true;
+    } else {
+      final baseMessage = jsonResponse['message'] ?? 'Error en el registro (${response.statusCode})';
+      final errors = jsonResponse['errors'] as Map<String, dynamic>? ?? {};
       
-      showSnackBar(context, apiResponseMessage!, Colors.red);
+      apiResponseMessage = errors.isNotEmpty 
+          ? '$baseMessage\nErrores: ${errors.values.join(', ')}'
+          : baseMessage;
+
+      if (context.mounted) {
+        showSnackBar(context, apiResponseMessage!, Colors.red);
+      }
       return false;
-    } catch (e) {
-      debugPrint('Error en registro: $e');
-      apiResponseMessage = 'Error de conexión: ${e.toString()}';
-      showSnackBar(context, apiResponseMessage!, Colors.red);
-      return false;
-    } finally {
-      isLoading = false;
-      notifyListeners();
     }
+  } catch (e) {
+    debugPrint('Error en registro: $e');
+    apiResponseMessage = 'Error de conexión: ${e.toString()}';
+    if (context.mounted) {
+      showSnackBar(context, apiResponseMessage!, Colors.red);
+    }
+    return false;
+  } finally {
+    isLoading = false;
+    notifyListeners();
   }
+}
+
 
   void showSnackBar(BuildContext context, String message, Color color) {
     debugPrint('[UI] Mostrando Snackbar: $message');
