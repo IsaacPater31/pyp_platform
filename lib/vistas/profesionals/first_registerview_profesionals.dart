@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:pyp_platform/controladores/profesionals/register_profesionals_firststep.dart';
+
 
 class FirstRegisterViewProfessionals extends StatefulWidget {
   const FirstRegisterViewProfessionals({super.key});
@@ -8,42 +10,22 @@ class FirstRegisterViewProfessionals extends StatefulWidget {
 }
 
 class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfessionals> {
-  final _formKey = GlobalKey<FormState>();
+  final ProfessionalFirstStepController controller = ProfessionalFirstStepController();
 
-  final _numeroDocumentoController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _fullNameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _birthDateController = TextEditingController();
-  final _postalCodeController = TextEditingController();
-
-  String? _tipoDocumento;
-  String? _departamentoSeleccionado;
-  String? _ciudadSeleccionada;
   bool _obscurePassword = true;
   DateTime? _selectedDate;
 
-  final List<String> _especialidades = [];
   final List<String> especialidadesDisponibles = ['Limpieza', 'Cocina', 'Planchado'];
 
   final Map<String, List<String>> departamentosYMunicipios = {
     'Atlántico': ['Barranquilla', 'Soledad'],
     'Cundinamarca': ['Bogotá', 'Soacha'],
-    // Agrega los que necesites
   };
 
   @override
   void dispose() {
-    _numeroDocumentoController.dispose();
-    _usernameController.dispose();
-    _fullNameController.dispose();
-    _passwordController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _birthDateController.dispose();
-    _postalCodeController.dispose();
+    controller.disposeControllers();
+    controller.dispose();
     super.dispose();
   }
 
@@ -53,50 +35,77 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
   }
 
   String? _validateNumeroDocumento(String? value) {
-    if (_tipoDocumento == null) return 'Seleccione primero el tipo de documento';
+    final tipo = controller.tipoDocumento.value;
+    if (tipo == null) return 'Seleccione primero el tipo de documento';
     if (value == null || value.trim().isEmpty) return 'Ingrese el número de documento';
 
     final numDoc = value.trim();
 
-    if (_tipoDocumento == 'Cédula de Ciudadanía') {
+    if (tipo == 'Cédula de Ciudadanía') {
       if (!RegExp(r'^\d+$').hasMatch(numDoc)) return 'Solo números';
       if (numDoc.length < 8 || numDoc.length > 10) return 'La cédula debe tener entre 8 y 10 dígitos';
-    } else if (_tipoDocumento == 'Tarjeta de Identidad') {
+    } else if (tipo == 'Tarjeta de Identidad') {
       if (!RegExp(r'^\d+$').hasMatch(numDoc)) return 'Solo números';
       if (numDoc.length < 6 || numDoc.length > 10) return 'La tarjeta debe tener entre 6 y 10 dígitos';
-    } else if (_tipoDocumento == 'Cédula de Extranjería') {
-      // Puede contener letras y números, generalmente de 6 a 15 caracteres
+    } else if (tipo == 'Cédula de Extranjería') {
       if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(numDoc)) return 'Solo letras y números';
       if (numDoc.length < 6 || numDoc.length > 15) return 'La cédula de extranjería debe tener entre 6 y 15 caracteres';
     }
     return null;
   }
 
-  String? _validateBirthDate(String? value) {
-    if (_selectedDate == null) return 'Seleccione la fecha de nacimiento';
-    final now = DateTime.now();
-    final age = now.year - _selectedDate!.year - ((now.month > _selectedDate!.month || (now.month == _selectedDate!.month && now.day >= _selectedDate!.day)) ? 0 : 1);
-    if (age < 18) return 'Debes ser mayor de 18 años';
-    return null;
+        String? _validateBirthDate(String? value) {
+          if (_selectedDate == null) return 'Seleccione la fecha de nacimiento';
+          final now = DateTime.now();
+          final age = now.year - _selectedDate!.year - ((now.month > _selectedDate!.month || (now.month == _selectedDate!.month && now.day >= _selectedDate!.day)) ? 0 : 1);
+          if (age < 18) return 'Debes ser mayor de 18 años';
+          return null;
+        }
+
+        void _submitForm() async {
+        FocusScope.of(context).unfocus();
+        final success = await controller.submit(context);
+        if (!mounted) return;
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(controller.apiMessage), backgroundColor: Colors.green),
+          );
+          // Navegar o limpiar campos si quieres
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(controller.apiMessage), backgroundColor: Colors.red),
+          );
+        }
+      }
+
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: const Color(0xFF6B7280)),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+    );
   }
 
-  void _submitForm() {
-    FocusScope.of(context).unfocus();
-    if (_formKey.currentState!.validate() && _especialidades.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('¡Datos válidos!'),
-          backgroundColor: Color(0xFF10B981),
-        ),
-      );
-    } else if (_especialidades.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Seleccione al menos una especialidad.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controllerField,
+    required IconData icon,
+    required String? Function(String?)? validator,
+    TextInputType? keyboardType,
+  }) {
+    return TextFormField(
+      controller: controllerField,
+      keyboardType: keyboardType,
+      decoration: _inputDecoration(label, icon),
+      validator: validator,
+      style: const TextStyle(color: Color(0xFF1F2937)),
+    );
   }
 
   @override
@@ -106,10 +115,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
       appBar: AppBar(
         title: const Text(
           'Registro Profesional - Datos Básicos',
-          style: TextStyle(
-            color: Color(0xFF1F2937),
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -118,44 +124,49 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Form(
-          key: _formKey,
+          key: controller.formKey,
           child: Column(
             children: [
               // Tipo de documento
-              DropdownButtonFormField<String>(
-                value: _tipoDocumento,
-                decoration: _inputDecoration('Tipo de documento', Icons.credit_card_outlined),
-                items: const [
-                  DropdownMenuItem(value: 'Cédula de Ciudadanía', child: Text('Cédula de Ciudadanía')),
-                  DropdownMenuItem(value: 'Tarjeta de Identidad', child: Text('Tarjeta de Identidad')),
-                  DropdownMenuItem(value: 'Cédula de Extranjería', child: Text('Cédula de Extranjería')),
-                ],
-                onChanged: (val) => setState(() {
-                  _tipoDocumento = val;
-                  _numeroDocumentoController.clear();
-                }),
-                validator: _validateTipoDocumento,
-                dropdownColor: Colors.white,
-                style: const TextStyle(color: Color(0xFF1F2937)),
+              ValueListenableBuilder<String?>(
+                valueListenable: controller.tipoDocumento,
+                builder: (context, value, child) {
+                  return DropdownButtonFormField<String>(
+                    value: value,
+                    decoration: _inputDecoration('Tipo de documento', Icons.credit_card_outlined),
+                    items: const [
+                      DropdownMenuItem(value: 'Cédula de Ciudadanía', child: Text('Cédula de Ciudadanía')),
+                      DropdownMenuItem(value: 'Tarjeta de Identidad', child: Text('Tarjeta de Identidad')),
+                      DropdownMenuItem(value: 'Cédula de Extranjería', child: Text('Cédula de Extranjería')),
+                    ],
+                    onChanged: (val) {
+                      controller.tipoDocumento.value = val;
+                      controller.numeroDocumentoController.clear();
+                    },
+                    validator: _validateTipoDocumento,
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(color: Color(0xFF1F2937)),
+                  );
+                },
               ),
               const SizedBox(height: 16),
 
               // Número de documento
-              TextFormField(
-                controller: _numeroDocumentoController,
-                keyboardType: _tipoDocumento == 'Cédula de Extranjería'
+              _buildTextField(
+                label: 'Número de documento',
+                controllerField: controller.numeroDocumentoController,
+                icon: Icons.numbers_outlined,
+                keyboardType: controller.tipoDocumento.value == 'Cédula de Extranjería'
                     ? TextInputType.text
                     : TextInputType.number,
-                decoration: _inputDecoration('Número de documento', Icons.numbers_outlined),
                 validator: _validateNumeroDocumento,
-                style: const TextStyle(color: Color(0xFF1F2937)),
               ),
               const SizedBox(height: 16),
 
               // Username
               _buildTextField(
                 label: 'Nombre de usuario',
-                controller: _usernameController,
+                controllerField: controller.usernameController,
                 icon: Icons.person_outline,
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
               ),
@@ -164,7 +175,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
               // Nombre completo
               _buildTextField(
                 label: 'Nombre completo',
-                controller: _fullNameController,
+                controllerField: controller.fullNameController,
                 icon: Icons.badge_outlined,
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
               ),
@@ -172,7 +183,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
 
               // Contraseña
               TextFormField(
-                controller: _passwordController,
+                controller: controller.passwordController,
                 obscureText: _obscurePassword,
                 decoration: _inputDecoration('Contraseña', Icons.lock_outline).copyWith(
                   suffixIcon: IconButton(
@@ -191,7 +202,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
               // Correo electrónico
               _buildTextField(
                 label: 'Correo electrónico',
-                controller: _emailController,
+                controllerField: controller.emailController,
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
                 validator: (v) {
@@ -206,7 +217,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
               // Teléfono
               _buildTextField(
                 label: 'Teléfono',
-                controller: _phoneController,
+                controllerField: controller.phoneController,
                 icon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
                 validator: (v) {
@@ -220,7 +231,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
 
               // Fecha de nacimiento
               TextFormField(
-                controller: _birthDateController,
+                controller: controller.birthDateController,
                 readOnly: true,
                 decoration: _inputDecoration('Fecha de nacimiento', Icons.calendar_today_outlined),
                 onTap: () async {
@@ -243,7 +254,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
                   if (date != null) {
                     setState(() {
                       _selectedDate = date;
-                      _birthDateController.text = "${date.day}/${date.month}/${date.year}";
+                      controller.birthDateController.text = "${date.day}/${date.month}/${date.year}";
                     });
                   }
                 },
@@ -253,57 +264,68 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
               const SizedBox(height: 16),
 
               // Departamento
-              DropdownButtonFormField<String>(
-                value: _departamentoSeleccionado,
-                decoration: _inputDecoration('Departamento', Icons.map_outlined),
-                items: departamentosYMunicipios.keys.map((String value) {
-                  return DropdownMenuItem<String>(
+              ValueListenableBuilder<String?>(
+                valueListenable: controller.departamentoSeleccionado,
+                builder: (context, value, child) {
+                  return DropdownButtonFormField<String>(
                     value: value,
-                    child: Text(value, style: const TextStyle(color: Color(0xFF1F2937))),
+                    decoration: _inputDecoration('Departamento', Icons.map_outlined),
+                    items: departamentosYMunicipios.keys.map((String val) {
+                      return DropdownMenuItem<String>(
+                        value: val,
+                        child: Text(val, style: const TextStyle(color: Color(0xFF1F2937))),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      controller.departamentoSeleccionado.value = val;
+                      controller.ciudadSeleccionada.value = null;
+                    },
+                    validator: (val) => val == null ? 'Seleccione un departamento' : null,
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(color: Color(0xFF1F2937)),
                   );
-                }).toList(),
-                onChanged: (value) => setState(() {
-                  _departamentoSeleccionado = value;
-                  _ciudadSeleccionada = null;
-                }),
-                validator: (value) => value == null ? 'Seleccione un departamento' : null,
-                dropdownColor: Colors.white,
-                style: const TextStyle(color: Color(0xFF1F2937)),
+                },
               ),
               const SizedBox(height: 16),
 
-              // Ciudad/Municipio
-              DropdownButtonFormField<String>(
-                value: _ciudadSeleccionada,
-                decoration: _inputDecoration('Ciudad/Municipio', Icons.location_city_outlined),
-                items: _departamentoSeleccionado == null
-                    ? []
-                    : departamentosYMunicipios[_departamentoSeleccionado]!
-                        .map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value, style: const TextStyle(color: Color(0xFF1F2937))),
-                          );
-                        }).toList(),
-                onChanged: (value) => setState(() => _ciudadSeleccionada = value),
-                validator: (value) => value == null ? 'Seleccione una ciudad' : null,
-                disabledHint: const Text('Seleccione un departamento primero', style: TextStyle(color: Color(0xFF6B7280))),
-                dropdownColor: Colors.white,
-                style: const TextStyle(color: Color(0xFF1F2937)),
+              // Ciudad
+              ValueListenableBuilder<String?>(
+                valueListenable: controller.ciudadSeleccionada,
+                builder: (context, value, child) {
+                  final ciudades = controller.departamentoSeleccionado.value == null
+                      ? <String>[]
+                      : departamentosYMunicipios[controller.departamentoSeleccionado.value] ?? [];
+
+                  return DropdownButtonFormField<String>(
+                    value: value,
+                    decoration: _inputDecoration('Ciudad/Municipio', Icons.location_city_outlined),
+                    items: ciudades
+                        .map((val) => DropdownMenuItem<String>(
+                              value: val,
+                              child: Text(val, style: const TextStyle(color: Color(0xFF1F2937))),
+                            ))
+                        .toList(),
+                    onChanged: (val) => controller.ciudadSeleccionada.value = val,
+                    validator: (val) => val == null ? 'Seleccione una ciudad' : null,
+                    disabledHint: const Text('Seleccione un departamento primero', style: TextStyle(color: Color(0xFF6B7280))),
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(color: Color(0xFF1F2937)),
+                  );
+                },
               ),
               const SizedBox(height: 16),
 
               // Código postal
               _buildTextField(
                 label: 'Código postal',
-                controller: _postalCodeController,
+                controllerField: controller.postalCodeController,
                 icon: Icons.numbers_outlined,
                 keyboardType: TextInputType.number,
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
               ),
               const SizedBox(height: 16),
 
-              // Especialidades (multiselección)
+              // Especialidades
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -318,20 +340,18 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
               Wrap(
                 spacing: 10,
                 children: especialidadesDisponibles.map((esp) {
-                  final selected = _especialidades.contains(esp);
+                  final selected = controller.especialidadesSeleccionadas.contains(esp);
                   return ChoiceChip(
-                    label: Text(esp, style: TextStyle(
-                      color: selected ? Colors.white : const Color(0xFF1F2937),
-                    )),
+                    label: Text(esp, style: TextStyle(color: selected ? Colors.white : const Color(0xFF1F2937))),
                     selected: selected,
                     selectedColor: const Color(0xFF1F2937),
                     backgroundColor: const Color(0xFFF3F4F6),
                     onSelected: (isSelected) {
                       setState(() {
                         if (isSelected) {
-                          _especialidades.add(esp);
+                          controller.especialidadesSeleccionadas.add(esp);
                         } else {
-                          _especialidades.remove(esp);
+                          controller.especialidadesSeleccionadas.remove(esp);
                         }
                       });
                     },
@@ -343,58 +363,21 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _submitForm,
+                  onPressed: controller.isLoading ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1F2937),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text(
-                    'Continuar',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: controller.isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Continuar', style: TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    required String? Function(String?)? validator,
-    TextInputType? keyboardType,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      decoration: _inputDecoration(label, icon),
-      validator: validator,
-      style: const TextStyle(color: Color(0xFF1F2937)),
-    );
-  }
-
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, color: const Color(0xFF6B7280)),
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-      labelStyle: const TextStyle(color: Color(0xFF6B7280)),
     );
   }
 }
