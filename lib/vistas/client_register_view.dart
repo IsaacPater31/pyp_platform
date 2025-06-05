@@ -18,7 +18,6 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
     super.initState();
     controller = ClientRegisterController();
     controller.addListener(() {
-      debugPrint('Controller updated - Loading: ${controller.isLoading}');
       setState(() {});
     });
   }
@@ -30,53 +29,49 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
   }
 
   Future<void> _submitForm(BuildContext context) async {
-  FocusScope.of(context).unfocus();
-  if (!controller.validateForm()) return;
+    FocusScope.of(context).unfocus();
+    if (!controller.validateForm()) return;
 
-  _showLoadingDialog(context);
-  
-  try {
-    final isValid = await controller.validarDatosBasicos(context);
-    if (!mounted) return;
-    
-    Navigator.pop(context); // Cerrar loading
-    
-    if (!isValid) {
-      debugPrint('Validación fallida - No navegar');
-      return;
-    }
+    _showLoadingDialog(context);
 
-    // Solo navegar si la validación fue exitosa
-    final locationSelected = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ClientRegisterLocationView(
-          onLocationSelected: (latLng, address) {
-            controller.setLocation(latLng, address);
-            Navigator.pop(context, true);
-          },
-        ),
-      ),
-    );
-
-    if (locationSelected == true && mounted) {
-      _showLoadingDialog(context);
-      final success = await controller.completeRegistration(context);
+    try {
+      final isValid = await controller.validarDatosBasicos(context);
       if (!mounted) return;
-      
+
       Navigator.pop(context); // Cerrar loading
-      if (success) {
-        Navigator.pop(context); // Cerrar vista de registro
-        _showSuccessMessage(context);
+
+      if (!isValid) return;
+
+      final locationSelected = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ClientRegisterLocationView(
+            onLocationSelected: (latLng, address) {
+              controller.setLocation(latLng, address);
+              Navigator.pop(context, true);
+            },
+          ),
+        ),
+      );
+
+      if (locationSelected == true && mounted) {
+        _showLoadingDialog(context);
+        final success = await controller.completeRegistration(context);
+        if (!mounted) return;
+
+        Navigator.pop(context); // Cerrar loading
+        if (success) {
+          Navigator.pop(context); // Cerrar vista de registro
+          _showSuccessMessage(context);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        _showErrorMessage(context, 'Error: ${e.toString()}');
       }
     }
-  } catch (e) {
-    if (mounted) {
-      Navigator.pop(context);
-      _showErrorMessage(context, 'Error: ${e.toString()}');
-    }
   }
-}
 
   void _showLoadingDialog(BuildContext context) {
     showDialog(
@@ -108,6 +103,62 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
     );
   }
 
+  // ====== VALIDACIONES FRONTEND MEJORADAS ======
+  String? _validateRequired(String? value, String field) {
+    if (value == null || value.trim().isEmpty) return 'El $field es requerido';
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'El correo electrónico es requerido';
+    }
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(value.trim())) {
+      return 'Ingrese un correo electrónico válido';
+    }
+    return null;
+  }
+
+  String? _validateBirthDate(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'La fecha de nacimiento es requerida';
+    }
+    try {
+      final parts = value.split('/');
+      if (parts.length == 3) {
+        final day = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+        final birthDate = DateTime(year, month, day);
+        final today = DateTime.now();
+        final age = today.year - birthDate.year - ((today.month > birthDate.month || (today.month == birthDate.month && today.day >= birthDate.day)) ? 0 : 1);
+        if (age < 18) {
+          return 'Debes ser mayor de 18 años';
+        }
+      } else {
+        return 'Formato de fecha inválido';
+      }
+    } catch (_) {
+      return 'Fecha inválida';
+    }
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) return 'El teléfono es requerido';
+    final phoneRegex = RegExp(r'^\d{10,}$');
+    if (!phoneRegex.hasMatch(value.trim())) return 'Ingrese un teléfono válido (solo números, mínimo 10)';
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.length < 6) return 'La contraseña debe tener mínimo 6 caracteres';
+    return null;
+  }
+
+  // ==============================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,14 +185,14 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                 label: 'Nombre de usuario',
                 controller: controller.usernameController,
                 icon: Icons.person_outline,
-                validator: (value) => value!.isEmpty ? 'Requerido' : null,
+                validator: (v) => _validateRequired(v, "nombre de usuario"),
               ),
               const SizedBox(height: 16),
               _buildTextField(
                 label: 'Nombre completo',
                 controller: controller.fullNameController,
                 icon: Icons.badge_outlined,
-                validator: (value) => value!.isEmpty ? 'Requerido' : null,
+                validator: (v) => _validateRequired(v, "nombre completo"),
               ),
               const SizedBox(height: 16),
               _buildTextField(
@@ -149,7 +200,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                 controller: controller.emailController,
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) => value!.contains('@') ? null : 'Email inválido',
+                validator: _validateEmail,
               ),
               const SizedBox(height: 16),
               _buildTextField(
@@ -157,12 +208,12 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                 controller: controller.phoneController,
                 icon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
-                validator: (value) => value!.length >= 10 ? null : 'Mínimo 10 dígitos',
+                validator: _validatePhone,
               ),
               const SizedBox(height: 16),
-              _buildDateField(context),
+              _buildDateField(context, validator: _validateBirthDate),
               const SizedBox(height: 16),
-              _buildPasswordField(),
+              _buildPasswordField(validator: _validatePassword),
               const SizedBox(height: 16),
               _buildDropdownDepartamento(),
               const SizedBox(height: 16),
@@ -173,7 +224,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                 controller: controller.postalCodeController,
                 icon: Icons.numbers_outlined,
                 keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Requerido' : null,
+                validator: (v) => _validateRequired(v, "código postal"),
               ),
               const SizedBox(height: 32),
               SizedBox(
@@ -193,7 +244,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                           'Continuar',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.white,                         
+                            color: Colors.white,
                           ),
                         ),
                 ),
@@ -232,7 +283,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
     );
   }
 
-  Widget _buildDateField(BuildContext context) {
+  Widget _buildDateField(BuildContext context, {String? Function(String?)? validator}) {
     return TextFormField(
       controller: controller.birthDateController,
       readOnly: true,
@@ -251,7 +302,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
       onTap: () async {
         final date = await showDatePicker(
           context: context,
-          initialDate: DateTime.now(),
+          initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
           firstDate: DateTime(1900),
           lastDate: DateTime.now(),
           builder: (context, child) {
@@ -270,12 +321,12 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
               "${date.day}/${date.month}/${date.year}";
         }
       },
-      validator: (value) => value!.isEmpty ? 'Requerido' : null,
+      validator: validator,
       style: const TextStyle(color: Color(0xFF1F2937)),
     );
   }
 
-  Widget _buildPasswordField() {
+  Widget _buildPasswordField({String? Function(String?)? validator}) {
     return TextFormField(
       controller: controller.passwordController,
       obscureText: _obscurePassword,
@@ -298,7 +349,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         labelStyle: const TextStyle(color: Color(0xFF6B7280)),
       ),
-      validator: (value) => value!.length >= 6 ? null : 'Mínimo 6 caracteres',
+      validator: validator,
       style: const TextStyle(color: Color(0xFF1F2937)),
     );
   }
