@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pyp_platform/vistas/client_register_view.dart';
+import 'package:pyp_platform/vistas/profesionals/first_registerview_profesionals.dart';
 
 class RoleSelectionView extends StatefulWidget {
   const RoleSelectionView({super.key});
@@ -77,7 +78,7 @@ class RoleSelectionViewState extends State<RoleSelectionView> {
                       if (selectedRole == 'cliente') {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const ClientRegisterView()));
                       } else if (selectedRole == 'profesional') {
-                        // Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfessionalRegisterView()));
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const FirstRegisterViewProfessionals()));
                       }
                     },
                     style: ElevatedButton.styleFrom(

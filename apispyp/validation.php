@@ -1,4 +1,28 @@
 <?php
+// --- MANEJO DE ERRORES GLOBAL JSON Y LOGS ---
+set_exception_handler(function($e) {
+    http_response_code(500);
+    header('Content-Type: application/json; charset=UTF-8');
+    error_log('EXCEPCIÓN FATAL: ' . $e->getMessage());
+    echo json_encode([
+        'success' => false,
+        'error' => true,
+        'message' => 'Error interno del servidor. Intenta más tarde.'
+    ]);
+    exit;
+});
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    http_response_code(500);
+    header('Content-Type: application/json; charset=UTF-8');
+    error_log("PHP ERROR ($errno): $errstr en $errfile:$errline");
+    echo json_encode([
+        'success' => false,
+        'error' => true,
+        'message' => 'Error interno del servidor. Intenta más tarde.'
+    ]);
+    exit;
+});
+
 require_once 'connection.php';
 header("Content-Type: application/json; charset=UTF-8");
 
@@ -77,8 +101,9 @@ if ($username_in_use && $email_in_use) {
 
 // Respuesta con lógica corregida
 echo json_encode([
-    'error' => $is_error, // Ahora sí refleja correctamente si hay duplicados
+    'error' => $is_error,
     'message' => $message
 ]);
 
 $conn->close();
+?>
