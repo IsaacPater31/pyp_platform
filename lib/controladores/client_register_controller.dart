@@ -3,13 +3,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:pyp_platform/vistas/register_view_failure.dart';
-import 'package:pyp_platform/vistas/register_view_success.dart';
 
 class ClientRegisterController with ChangeNotifier {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  // Controladores de texto
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -19,27 +16,21 @@ class ClientRegisterController with ChangeNotifier {
   final TextEditingController postalCodeController = TextEditingController();
   final TextEditingController addressDetailController = TextEditingController();
 
-  // Variables de estado
   String? departamentoSeleccionado;
   String? ciudadSeleccionada;
   String? apiResponseMessage;
   bool isLoading = false;
   LatLng? selectedLocation;
   String? selectedAddress;
-  bool? isUsernameAvailable;
-  bool? isEmailAvailable;
 
-  // Departamentos y municipios
   final Map<String, List<String>> departamentosYMunicipios = {
     'Antioquia': ['Abejorral', 'Abriaquí'],
     'Cundinamarca': ['Agua de Dios', 'Albán'],
   };
 
-  // Debug variables
   Map<String, dynamic>? lastValidationResponse;
   Map<String, dynamic>? lastRegistrationResponse;
 
-  // --- AÑADE ESTA VARIABLE ---
   final String baseUrl = dotenv.env['API_URL'] ?? 'http://localhost/apispyp';
 
   void onDepartamentoChanged(String? nuevo) {
@@ -63,14 +54,12 @@ class ClientRegisterController with ChangeNotifier {
     return formKey.currentState?.validate() ?? false;
   }
 
-  Future<bool> validarDatosBasicos(BuildContext context) async {
-    if (!validateForm()) return false;
-
+  Future<Map<String, dynamic>> validarDatosBasicos() async {
+    if (!validateForm()) return {'success': false, 'message': 'Formulario no válido'};
     isLoading = true;
     notifyListeners();
 
     try {
-      // --- AQUÍ USAS LA VARIABLE DEL ENV ---
       final url = Uri.parse('$baseUrl/validation.php');
       final response = await http.post(
         url,
@@ -85,42 +74,34 @@ class ClientRegisterController with ChangeNotifier {
       lastValidationResponse = jsonResponse;
 
       if (response.statusCode == 200) {
-        // Verificación mejorada
         if (jsonResponse['error'] == true ||
             jsonResponse['message'].contains('en uso')) {
           apiResponseMessage = jsonResponse['message'];
-          showSnackBar(context, apiResponseMessage!, Colors.red);
-          return false;
+          return {'success': false, 'message': apiResponseMessage};
         }
-        return true;
+        return {'success': true};
       } else {
         apiResponseMessage = 'Error de conexión (${response.statusCode})';
-        showSnackBar(context, apiResponseMessage!, Colors.red);
-        return false;
+        return {'success': false, 'message': apiResponseMessage};
       }
     } catch (e) {
       apiResponseMessage = 'Error: ${e.toString()}';
-      showSnackBar(context, apiResponseMessage!, Colors.red);
-      return false;
+      return {'success': false, 'message': apiResponseMessage};
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<bool> completeRegistration(BuildContext context) async {
+  Future<Map<String, dynamic>> completeRegistration() async {
     if (selectedLocation == null) {
-      if (context.mounted) {
-        showSnackBar(context, 'Debes seleccionar una ubicación', Colors.red);
-      }
-      return false;
+      return {'success': false, 'message': 'Debes seleccionar una ubicación'};
     }
 
     isLoading = true;
     notifyListeners();
 
     try {
-      // --- AQUÍ TAMBIÉN USAS LA VARIABLE DEL ENV ---
       final url = Uri.parse('$baseUrl/register_client.php');
       String formattedDate = '';
       if (birthDateController.text.isNotEmpty) {
@@ -145,30 +126,16 @@ class ClientRegisterController with ChangeNotifier {
         'longitud': selectedLocation!.longitude.toString(),
       };
 
-      debugPrint('Datos a enviar: $requestBody');
-
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode(requestBody),
       ).timeout(const Duration(seconds: 30));
 
-      debugPrint('Respuesta del servidor: ${response.statusCode} - ${response.body}');
-
       final jsonResponse = jsonDecode(response.body);
 
       if (response.statusCode == 201 && jsonResponse['success'] == true) {
-        if (context.mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const RegisterSuccessView()),
-                (route) => false,
-              );
-            }
-          });
-        }
-        return true;
+        return {'success': true};
       } else {
         final baseMessage =
             jsonResponse['message'] ?? 'Error en el registro (${response.statusCode})';
@@ -176,46 +143,15 @@ class ClientRegisterController with ChangeNotifier {
         apiResponseMessage = errors.isNotEmpty
             ? '$baseMessage\nErrores: ${errors.values.join(', ')}'
             : baseMessage;
-
-        if (context.mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => RegisterFailedView(errorMessage: apiResponseMessage),
-              ));
-            }
-          });
-        }
-        return false;
+        return {'success': false, 'message': apiResponseMessage};
       }
     } catch (e) {
-      debugPrint('Error en registro: $e');
       apiResponseMessage = 'Error de conexión: ${e.toString()}';
-
-      if (context.mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => RegisterFailedView(errorMessage: apiResponseMessage),
-            ));
-          }
-        });
-      }
-      return false;
+      return {'success': false, 'message': apiResponseMessage};
     } finally {
       isLoading = false;
       notifyListeners();
     }
-  }
-
-  void showSnackBar(BuildContext context, String message, Color color) {
-    debugPrint('[UI] Mostrando Snackbar: $message');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-      ),
-    );
   }
 
   @override

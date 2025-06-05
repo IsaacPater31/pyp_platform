@@ -5,13 +5,16 @@ import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_ti
 import 'package:latlong2/latlong.dart' as latlong;
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:pyp_platform/controladores/client_register_controller.dart';
+import 'package:pyp_platform/vistas/register_view_success.dart';
+import 'package:pyp_platform/vistas/register_view_failure.dart';
 
 class ClientRegisterLocationView extends StatefulWidget {
-  final Function(latlong.LatLng, String) onLocationSelected;
+  final ClientRegisterController controller;
 
   const ClientRegisterLocationView({
     super.key,
-    required this.onLocationSelected,
+    required this.controller,
   });
 
   @override
@@ -48,6 +51,9 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
     try {
       setState(() => _isLoading = true);
       final position = await Geolocator.getCurrentPosition();
+
+      if (!mounted) return;
+
       setState(() {
         _currentCenter = latlong.LatLng(position.latitude, position.longitude);
         _mapReady = true;
@@ -57,11 +63,14 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
         _moveToCurrentLocation();
       });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error obteniendo ubicación: ${e.toString()}')),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -110,7 +119,7 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
                     initialCenter: _currentCenter,
                     initialZoom: 16,
                     onPositionChanged: (position, _) {
-                      setState(() => _currentCenter = position.center!);
+                      setState(() => _currentCenter = position.center);
                       _debounceTimer?.cancel();
                       _debounceTimer = Timer(const Duration(milliseconds: 500), () {
                         _updateAddressFromCoordinates();
@@ -139,8 +148,7 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
                     ),
                   ],
                 ),
-
-          // Botón de ubicación — estilo iOS y visible arriba
+          // Botón de ubicación
           Positioned(
             top: 16,
             right: 16,
@@ -150,7 +158,7 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 26),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -183,7 +191,7 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 26),
             blurRadius: 10,
             spreadRadius: 2,
           ),
@@ -207,9 +215,38 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {
-              final fullAddress = '${_selectedAddress ?? "Ubicación seleccionada"} ${_addressDetailController.text}';
-              widget.onLocationSelected(_currentCenter, fullAddress);
+            onPressed: () async {
+              final fullAddress =
+                  '${_selectedAddress ?? "Ubicación seleccionada"} ${_addressDetailController.text}';
+              // Guarda la ubicación y dirección en el controller
+              widget.controller.setLocation(_currentCenter, fullAddress);
+
+              // Mostrar loading mientras se registra
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const Center(child: CircularProgressIndicator()),
+              );
+
+              // Ejecuta el registro
+              final result = await widget.controller.completeRegistration();
+
+              if (!mounted) return;
+              Navigator.pop(context); // Cierra loading
+
+              if (result['success'] == true) {
+                // Registro exitoso → Success
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const RegisterSuccessView()),
+                  (route) => false,
+                );
+              } else {
+                // Registro fallido → Failure
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => RegisterFailedView(errorMessage: result['message'])),
+                  (route) => false,
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 50),

@@ -28,52 +28,59 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
     super.dispose();
   }
 
-  Future<void> _submitForm(BuildContext context) async {
+  Future<void> _submitForm() async {
     FocusScope.of(context).unfocus();
     if (!controller.validateForm()) return;
 
-    _showLoadingDialog(context);
+    _showLoadingDialog();
 
     try {
-      final isValid = await controller.validarDatosBasicos(context);
-      if (!mounted) return;
+      final validation = await controller.validarDatosBasicos();
 
+      if (!mounted) return;
       Navigator.pop(context); // Cerrar loading
 
-      if (!isValid) return;
+      if (validation['success'] != true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(validation['message'] ?? 'Error desconocido'), backgroundColor: Colors.red),
+        );
+        return;
+      }
 
-      final locationSelected = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ClientRegisterLocationView(
-            onLocationSelected: (latLng, address) {
-              controller.setLocation(latLng, address);
-              Navigator.pop(context, true);
-            },
+      final locationSelected = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ClientRegisterLocationView(controller: controller),
           ),
-        ),
-      );
+        );
 
-      if (locationSelected == true && mounted) {
-        _showLoadingDialog(context);
-        final success = await controller.completeRegistration(context);
+
+      if (!mounted) return;
+      if (locationSelected == true) {
+        _showLoadingDialog();
+        final registration = await controller.completeRegistration();
+
         if (!mounted) return;
-
         Navigator.pop(context); // Cerrar loading
-        if (success) {
+
+        if (registration['success'] == true) {
+          if (!mounted) return;
           Navigator.pop(context); // Cerrar vista de registro
-          _showSuccessMessage(context);
+          _showSuccessMessage();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(registration['message'] ?? 'Error al registrar'), backgroundColor: Colors.red),
+          );
         }
       }
     } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        _showErrorMessage(context, 'Error: ${e.toString()}');
-      }
+      if (!mounted) return;
+      Navigator.pop(context);
+      _showErrorMessage('Error: ${e.toString()}');
     }
   }
 
-  void _showLoadingDialog(BuildContext context) {
+  void _showLoadingDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -85,7 +92,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
     );
   }
 
-  void _showSuccessMessage(BuildContext context) {
+  void _showSuccessMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Registro completado exitosamente'),
@@ -94,7 +101,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
     );
   }
 
-  void _showErrorMessage(BuildContext context, String message) {
+  void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -211,7 +218,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                 validator: _validatePhone,
               ),
               const SizedBox(height: 16),
-              _buildDateField(context, validator: _validateBirthDate),
+              _buildDateField(validator: _validateBirthDate),
               const SizedBox(height: 16),
               _buildPasswordField(validator: _validatePassword),
               const SizedBox(height: 16),
@@ -230,7 +237,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: controller.isLoading ? null : () => _submitForm(context),
+                  onPressed: controller.isLoading ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1F2937),
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -283,7 +290,7 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
     );
   }
 
-  Widget _buildDateField(BuildContext context, {String? Function(String?)? validator}) {
+  Widget _buildDateField({String? Function(String?)? validator}) {
     return TextFormField(
       controller: controller.birthDateController,
       readOnly: true,
