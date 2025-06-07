@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pyp_platform/controladores/profesionals/register_profesionals_firststep.dart';
 
-
 class FirstRegisterViewProfessionals extends StatefulWidget {
   const FirstRegisterViewProfessionals({super.key});
 
@@ -54,31 +53,30 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
     return null;
   }
 
-        String? _validateBirthDate(String? value) {
-          if (_selectedDate == null) return 'Seleccione la fecha de nacimiento';
-          final now = DateTime.now();
-          final age = now.year - _selectedDate!.year - ((now.month > _selectedDate!.month || (now.month == _selectedDate!.month && now.day >= _selectedDate!.day)) ? 0 : 1);
-          if (age < 18) return 'Debes ser mayor de 18 años';
-          return null;
-        }
+  String? _validateBirthDate(String? value) {
+    if (_selectedDate == null) return 'Seleccione la fecha de nacimiento';
+    final now = DateTime.now();
+    final age = now.year - _selectedDate!.year - ((now.month > _selectedDate!.month || (now.month == _selectedDate!.month && now.day >= _selectedDate!.day)) ? 0 : 1);
+    if (age < 18) return 'Debes ser mayor de 18 años';
+    return null;
+  }
 
-        void _submitForm() async {
-        FocusScope.of(context).unfocus();
-        final success = await controller.submit(context);
-        if (!mounted) return;
+  void _submitForm() async {
+    FocusScope.of(context).unfocus();
+    final success = await controller.submit(context);
+    if (!mounted) return;
 
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(controller.apiMessage), backgroundColor: Colors.green),
-          );
-          // Navegar o limpiar campos si quieres
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(controller.apiMessage), backgroundColor: Colors.red),
-          );
-        }
-      }
-
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(controller.apiMessage), backgroundColor: Colors.green),
+      );
+      // Navegar o limpiar campos si quieres
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(controller.apiMessage), backgroundColor: Colors.red),
+      );
+    }
+  }
 
   InputDecoration _inputDecoration(String label, IconData icon) {
     return InputDecoration(
@@ -266,9 +264,9 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
               // Departamento
               ValueListenableBuilder<String?>(
                 valueListenable: controller.departamentoSeleccionado,
-                builder: (context, value, child) {
+                builder: (context, departamentoValue, _) {
                   return DropdownButtonFormField<String>(
-                    value: value,
+                    value: departamentoValue,
                     decoration: _inputDecoration('Departamento', Icons.map_outlined),
                     items: departamentosYMunicipios.keys.map((String val) {
                       return DropdownMenuItem<String>(
@@ -278,7 +276,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
                     }).toList(),
                     onChanged: (val) {
                       controller.departamentoSeleccionado.value = val;
-                      controller.ciudadSeleccionada.value = null;
+                      controller.ciudadSeleccionada.value = null; // Limpia ciudad
                     },
                     validator: (val) => val == null ? 'Seleccione un departamento' : null,
                     dropdownColor: Colors.white,
@@ -288,28 +286,37 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
               ),
               const SizedBox(height: 16),
 
-              // Ciudad
+              // Ciudad - ahora SIEMPRE depende del departamento
               ValueListenableBuilder<String?>(
-                valueListenable: controller.ciudadSeleccionada,
-                builder: (context, value, child) {
-                  final ciudades = controller.departamentoSeleccionado.value == null
+                valueListenable: controller.departamentoSeleccionado,
+                builder: (context, departamentoValue, _) {
+                  final ciudades = departamentoValue == null
                       ? <String>[]
-                      : departamentosYMunicipios[controller.departamentoSeleccionado.value] ?? [];
-
-                  return DropdownButtonFormField<String>(
-                    value: value,
-                    decoration: _inputDecoration('Ciudad/Municipio', Icons.location_city_outlined),
-                    items: ciudades
-                        .map((val) => DropdownMenuItem<String>(
-                              value: val,
-                              child: Text(val, style: const TextStyle(color: Color(0xFF1F2937))),
-                            ))
-                        .toList(),
-                    onChanged: (val) => controller.ciudadSeleccionada.value = val,
-                    validator: (val) => val == null ? 'Seleccione una ciudad' : null,
-                    disabledHint: const Text('Seleccione un departamento primero', style: TextStyle(color: Color(0xFF6B7280))),
-                    dropdownColor: Colors.white,
-                    style: const TextStyle(color: Color(0xFF1F2937)),
+                      : departamentosYMunicipios[departamentoValue] ?? [];
+                  return ValueListenableBuilder<String?>(
+                    valueListenable: controller.ciudadSeleccionada,
+                    builder: (context, ciudadValue, _) {
+                      return DropdownButtonFormField<String>(
+                        value: ciudadValue,
+                        decoration: _inputDecoration('Ciudad/Municipio', Icons.location_city_outlined),
+                        items: ciudades
+                            .map((val) => DropdownMenuItem<String>(
+                                  value: val,
+                                  child: Text(val, style: const TextStyle(color: Color(0xFF1F2937))),
+                                ))
+                            .toList(),
+                        onChanged: ciudades.isEmpty
+                            ? null
+                            : (val) => controller.ciudadSeleccionada.value = val,
+                        validator: (val) {
+                          if (departamentoValue == null) return 'Seleccione un departamento primero';
+                          return val == null ? 'Seleccione una ciudad' : null;
+                        },
+                        disabledHint: const Text('Seleccione un departamento primero', style: TextStyle(color: Color(0xFF6B7280))),
+                        dropdownColor: Colors.white,
+                        style: const TextStyle(color: Color(0xFF1F2937)),
+                      );
+                    },
                   );
                 },
               ),
