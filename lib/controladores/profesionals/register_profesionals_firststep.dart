@@ -54,7 +54,6 @@ class ProfessionalFirstStepController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print("API Base URL: $baseUrl");  // Imprime la URL base para verificar
       final url = Uri.parse('$baseUrl/register_profesional_basico.php');
       final body = {
         "tipo_documento": tipoDocumento.value,

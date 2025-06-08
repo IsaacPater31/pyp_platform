@@ -8,6 +8,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:pyp_platform/controladores/client_register_controller.dart';
 import 'package:pyp_platform/vistas/register_view_success.dart';
 import 'package:pyp_platform/vistas/register_view_failure.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ClientRegisterLocationView extends StatefulWidget {
   final ClientRegisterController controller;
@@ -48,29 +49,43 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
   }
 
   Future<void> _initLocation() async {
-    try {
-      setState(() => _isLoading = true);
-      final position = await Geolocator.getCurrentPosition();
+    // Verificar y solicitar permisos de ubicación
+    PermissionStatus permissionStatus = await Permission.location.request();
 
-      if (!mounted) return;
+    if (permissionStatus.isGranted) {
+      // Si el permiso está concedido, obtener la ubicación
+      try {
+        setState(() => _isLoading = true);
+        final position = await Geolocator.getCurrentPosition();
 
-      setState(() {
-        _currentCenter = latlong.LatLng(position.latitude, position.longitude);
-        _mapReady = true;
-      });
+        if (!mounted) return;
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _moveToCurrentLocation();
-      });
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error obteniendo ubicación: ${e.toString()}')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _currentCenter = latlong.LatLng(position.latitude, position.longitude);
+          _mapReady = true;
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _moveToCurrentLocation();
+        });
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error obteniendo ubicación: ${e.toString()}')),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
+    } else if (permissionStatus.isDenied) {
+      // Si el permiso es denegado, muestra un mensaje
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permiso de ubicación denegado')),
+      );
+    } else if (permissionStatus.isPermanentlyDenied) {
+      // Si el permiso es permanentemente denegado, abre la configuración
+      openAppSettings(); // Abre la configuración de la app para habilitar el permiso manualmente
     }
   }
 

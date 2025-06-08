@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pyp_platform/controladores/profesionals/register_profesionals_firststep.dart';
 import 'package:pyp_platform/vistas/profesionals/selfie_registerview_profesionals.dart';
+import 'package:url_launcher/url_launcher.dart';  
 
 class FirstRegisterViewProfessionals extends StatefulWidget {
   const FirstRegisterViewProfessionals({super.key});
@@ -14,6 +15,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
 
   bool _obscurePassword = true;
   DateTime? _selectedDate;
+  bool _acceptTerms = false;  // Variable para verificar si se aceptan los términos
 
   final List<String> especialidadesDisponibles = ['Limpieza', 'Cocina', 'Planchado'];
 
@@ -62,7 +64,34 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
     return null;
   }
 
+  // Método para abrir el enlace de los Términos y Condiciones
+  Future<void> _launchURL() async {
+    const url = 'https://pypplatform.liveblog365.com/TerminosCondiciones/';
+    final Uri _url = Uri.parse(url);
+
+    try {
+      if (await canLaunchUrl(_url)) {
+        await launchUrl(_url, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'No se pudo abrir el enlace';
+      }
+    } catch (e) {
+      print('Error al abrir el enlace: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el enlace.')),
+      );
+    }
+  }
+
   void _submitForm() async {
+    if (!_acceptTerms) {
+      // Si no se ha aceptado los términos, mostramos un mensaje de error
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Debes aceptar los términos y condiciones para continuar'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     FocusScope.of(context).unfocus();
     final success = await controller.submit(context);
     if (!mounted) return;
@@ -84,7 +113,6 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
       );
     }
   }
-
 
   InputDecoration _inputDecoration(String label, IconData icon) {
     return InputDecoration(
@@ -373,8 +401,37 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 16),
+
+              // Aceptación de términos
+              Row(
+                children: [
+                  Checkbox(
+                    value: _acceptTerms,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _acceptTerms = value!;
+                      });
+                    },
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Acepto los términos y condiciones',
+                      style: TextStyle(color: Colors.black54),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _launchURL,
+                    child: const Text(
+                      'Leer Términos y Condiciones',
+                      style: TextStyle(color: Color(0xFF1F2937)),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 28),
 
+              // Botón para enviar el formulario
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

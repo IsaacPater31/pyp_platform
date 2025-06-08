@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/widgets.dart';
 
 class SelfieRegisterViewProfessionals extends StatefulWidget {
   const SelfieRegisterViewProfessionals({super.key});
@@ -9,15 +10,53 @@ class SelfieRegisterViewProfessionals extends StatefulWidget {
   State<SelfieRegisterViewProfessionals> createState() => _SelfieRegisterViewProfessionalsState();
 }
 
-class _SelfieRegisterViewProfessionalsState extends State<SelfieRegisterViewProfessionals> {
+class _SelfieRegisterViewProfessionalsState extends State<SelfieRegisterViewProfessionals> with WidgetsBindingObserver {
   File? _selfie;
   bool _isUploading = false;
+  bool _isTakingPhoto = false;
+  DateTime? _lastBackgroundTime;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this); // Agregar observador para el ciclo de vida
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Eliminar observador cuando la app se cierre
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _lastBackgroundTime = DateTime.now(); // Guarda el tiempo en que la app entra en segundo plano
+    } else if (state == AppLifecycleState.resumed) {
+      final timeInBackground = DateTime.now().difference(_lastBackgroundTime ?? DateTime.now());
+      if (timeInBackground.inSeconds > 5) {
+        // Si la app estuvo en segundo plano por más de 5 segundos, aseguramos que el estado esté actualizado
+        setState(() {
+          _isTakingPhoto = false;
+        });
+      }
+    }
+  }
+
+  // Función para tomar la selfie
   Future<void> _pickSelfie() async {
+    setState(() {
+      _isTakingPhoto = true;
+    });
+
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
 
-    if (!mounted) return; // <- Añadido para seguridad
+    if (!mounted) return; // Añadido para seguridad
+
+    setState(() {
+      _isTakingPhoto = false;  // Terminó el proceso de tomar la foto
+    });
 
     if (pickedFile != null) {
       setState(() {
@@ -26,6 +65,7 @@ class _SelfieRegisterViewProfessionalsState extends State<SelfieRegisterViewProf
     }
   }
 
+  // Función para subir la selfie (simulación)
   void _uploadSelfie() async {
     if (_selfie == null) {
       if (!mounted) return;
@@ -35,13 +75,13 @@ class _SelfieRegisterViewProfessionalsState extends State<SelfieRegisterViewProf
       return;
     }
 
-    setState(() => _isUploading = true);
+    setState(() => _isUploading = true);  // Empieza a cargar
 
-    await Future.delayed(const Duration(seconds: 1)); // Simulación de subida
+    await Future.delayed(const Duration(seconds: 2)); // Simulación de subida de selfie
 
     if (!mounted) return;
 
-    setState(() => _isUploading = false);
+    setState(() => _isUploading = false);  // Termina de cargar
 
     if (!mounted) return;
 
@@ -74,21 +114,23 @@ class _SelfieRegisterViewProfessionalsState extends State<SelfieRegisterViewProf
             ),
             const SizedBox(height: 24),
             GestureDetector(
-              onTap: _pickSelfie,
+              onTap: _isTakingPhoto ? null : _pickSelfie,  // Deshabilitar si ya está tomando la foto
               child: CircleAvatar(
                 radius: 70,
                 backgroundImage: _selfie != null ? FileImage(_selfie!) : null,
                 backgroundColor: Colors.grey[300],
-                child: _selfie == null
+                child: _selfie == null && !_isTakingPhoto
                     ? const Icon(Icons.camera_alt, size: 50, color: Colors.white)
-                    : null,
+                    : _isTakingPhoto
+                        ? const CircularProgressIndicator() // Indicador mientras toma la foto
+                        : null,
               ),
             ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isUploading ? null : _uploadSelfie,
+                onPressed: _isUploading || _selfie == null ? null : _uploadSelfie, // Deshabilitar el botón mientras sube
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1F2937),
                   padding: const EdgeInsets.symmetric(vertical: 16),
