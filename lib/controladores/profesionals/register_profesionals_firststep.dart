@@ -24,7 +24,8 @@ class ProfessionalFirstStepController extends ChangeNotifier {
   bool isLoading = false;
   String apiMessage = '';
 
-  final String baseUrl = dotenv.env['API_URL'] ?? 'http://localhost/apispyp';
+  // Verifica si el archivo .env está siendo cargado correctamente
+  final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://api.local/apispyp';
 
   void disposeControllers() {
     numeroDocumentoController.dispose();
@@ -53,6 +54,7 @@ class ProfessionalFirstStepController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      print("API Base URL: $baseUrl");  // Imprime la URL base para verificar
       final url = Uri.parse('$baseUrl/register_profesional_basico.php');
       final body = {
         "tipo_documento": tipoDocumento.value,

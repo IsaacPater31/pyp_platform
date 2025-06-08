@@ -4,6 +4,9 @@ import 'package:pyp_platform/vistas/splash_screen.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: "config.env");
+  await dotenv.load(fileName: "config.env");
+  print(dotenv.env['API_BASE_URL']);  // Verifica si se está cargando correctamente
+
   runApp(const MyApp());
 }
 

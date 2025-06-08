@@ -30,8 +30,7 @@ class ClientRegisterController with ChangeNotifier {
 
   Map<String, dynamic>? lastValidationResponse;
   Map<String, dynamic>? lastRegistrationResponse;
-
-  final String baseUrl = dotenv.env['API_URL'] ?? 'http://localhost/apispyp';
+  final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://api.local/apispyp';
 
   void onDepartamentoChanged(String? nuevo) {
     departamentoSeleccionado = nuevo;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pyp_platform/controladores/profesionals/register_profesionals_firststep.dart';
+import 'package:pyp_platform/vistas/profesionals/selfie_registerview_profesionals.dart';
 
 class FirstRegisterViewProfessionals extends StatefulWidget {
   const FirstRegisterViewProfessionals({super.key});
@@ -70,13 +71,20 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(controller.apiMessage), backgroundColor: Colors.green),
       );
-      // Navegar o limpiar campos si quieres
+      // Espera un poco para que el usuario vea el mensaje
+      await Future.delayed(const Duration(milliseconds: 700));
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const SelfieRegisterViewProfessionals()),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(controller.apiMessage), backgroundColor: Colors.red),
       );
     }
   }
+
 
   InputDecoration _inputDecoration(String label, IconData icon) {
     return InputDecoration(
