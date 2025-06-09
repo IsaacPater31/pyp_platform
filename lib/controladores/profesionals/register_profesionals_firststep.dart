@@ -142,6 +142,191 @@ class ProfessionalFirstStepController extends ChangeNotifier {
     }
   }
 
+  // --- Documento de identidad FRONTAL
+  Future<bool> subirDocumentoFrontal(File file) async {
+    if (idProfesional == null) {
+      apiMessage = 'No se encontró el ID del profesional.';
+      notifyListeners();
+      return false;
+    }
+
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final uri = Uri.parse('$baseUrl/upload_document_frontal.php');
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['id_profesional'] = idProfesional.toString()
+        ..files.add(await http.MultipartFile.fromPath('foto_frontal', file.path)); // CAMPO CORRECTO
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final jsonResponse = json.decode(response.body);
+
+      if (response.statusCode == 200 && jsonResponse['success'] == true) {
+        apiMessage = jsonResponse['message'];
+        return true;
+      } else {
+        apiMessage = jsonResponse['message'] ?? 'Error al subir el documento frontal';
+        return false;
+      }
+    } catch (e) {
+      apiMessage = 'Error: ${e.toString()}';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // --- Documento de identidad REVERSO
+  Future<bool> subirDocumentoReverso(File file) async {
+    if (idProfesional == null) {
+      apiMessage = 'No se encontró el ID del profesional.';
+      notifyListeners();
+      return false;
+    }
+
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final uri = Uri.parse('$baseUrl/upload_document_reverse.php');
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['id_profesional'] = idProfesional.toString()
+        ..files.add(await http.MultipartFile.fromPath('foto', file.path)); // CAMPO CORRECTO
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final jsonResponse = json.decode(response.body);
+
+      if (response.statusCode == 200 && jsonResponse['success'] == true) {
+        apiMessage = jsonResponse['message'];
+        return true;
+      } else {
+        apiMessage = jsonResponse['message'] ?? 'Error al subir el documento reverso';
+        return false;
+      }
+    } catch (e) {
+      apiMessage = 'Error: ${e.toString()}';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // --- Certificados (PDF OPCIONAL)
+  Future<bool> subirCertificadosEspecialidad(File file) async {
+    if (idProfesional == null) {
+      apiMessage = 'No se encontró el ID del profesional.';
+      notifyListeners();
+      return false;
+    }
+
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final uri = Uri.parse('$baseUrl/upload_certificates.php');
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['id_profesional'] = idProfesional.toString()
+        ..files.add(await http.MultipartFile.fromPath('certificado', file.path)); // CAMPO CORRECTO
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final jsonResponse = json.decode(response.body);
+
+      if (response.statusCode == 200 && jsonResponse['success'] == true) {
+        apiMessage = jsonResponse['message'];
+        return true;
+      } else {
+        apiMessage = jsonResponse['message'] ?? 'Error al subir los certificados';
+        return false;
+      }
+    } catch (e) {
+      apiMessage = 'Error: ${e.toString()}';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // --- Antecedentes (PDF OBLIGATORIO)
+  Future<bool> subirAntecedentes(File file) async {
+    if (idProfesional == null) {
+      apiMessage = 'No se encontró el ID del profesional.';
+      notifyListeners();
+      return false;
+    }
+
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final uri = Uri.parse('$baseUrl/upload_antecedentes.php');
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['id_profesional'] = idProfesional.toString()
+        ..files.add(await http.MultipartFile.fromPath('antecedente', file.path)); // CAMPO CORRECTO
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final jsonResponse = json.decode(response.body);
+
+      if (response.statusCode == 200 && jsonResponse['success'] == true) {
+        apiMessage = jsonResponse['message'];
+        return true;
+      } else {
+        apiMessage = jsonResponse['message'] ?? 'Error al subir antecedentes';
+        return false;
+      }
+    } catch (e) {
+      apiMessage = 'Error: ${e.toString()}';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+
+  Future<bool> marcarRegistroCompleto() async {
+    if (idProfesional == null) {
+      apiMessage = 'No se encontró el ID del profesional.';
+      notifyListeners();
+      return false;
+    }
+
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final uri = Uri.parse('$baseUrl/set_registro_completo.php');
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['id_profesional'] = idProfesional.toString();
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final jsonResponse = json.decode(response.body);
+
+      if (response.statusCode == 200 && jsonResponse['success'] == true) {
+        apiMessage = jsonResponse['message'];
+        return true;
+      } else {
+        apiMessage = jsonResponse['message'] ?? 'No se pudo marcar el registro como completo';
+        return false;
+      }
+    } catch (e) {
+      apiMessage = 'Error: ${e.toString()}';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+
   String _formatDate(String dateText) {
     try {
       final parts = dateText.split('/');
