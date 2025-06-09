@@ -45,9 +45,6 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
     if (tipo == 'Cédula de Ciudadanía') {
       if (!RegExp(r'^\d+$').hasMatch(numDoc)) return 'Solo números';
       if (numDoc.length < 8 || numDoc.length > 10) return 'La cédula debe tener entre 8 y 10 dígitos';
-    } else if (tipo == 'Tarjeta de Identidad') {
-      if (!RegExp(r'^\d+$').hasMatch(numDoc)) return 'Solo números';
-      if (numDoc.length < 6 || numDoc.length > 10) return 'La tarjeta debe tener entre 6 y 10 dígitos';
     } else if (tipo == 'Cédula de Extranjería') {
       if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(numDoc)) return 'Solo letras y números';
       if (numDoc.length < 6 || numDoc.length > 15) return 'La cédula de extranjería debe tener entre 6 y 15 caracteres';
@@ -63,11 +60,9 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
     return null;
   }
 
-  // Método para abrir el enlace de los Términos y Condiciones
   Future<void> _launchURL() async {
     const url = 'https://pypplatform.liveblog365.com/TerminosCondiciones/';
     final Uri _url = Uri.parse(url);
-
     try {
       if (await canLaunchUrl(_url)) {
         await launchUrl(_url, mode: LaunchMode.externalApplication);
@@ -168,7 +163,6 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
                     decoration: _inputDecoration('Tipo de documento', Icons.credit_card_outlined),
                     items: const [
                       DropdownMenuItem(value: 'Cédula de Ciudadanía', child: Text('Cédula de Ciudadanía')),
-                      DropdownMenuItem(value: 'Tarjeta de Identidad', child: Text('Tarjeta de Identidad')),
                       DropdownMenuItem(value: 'Cédula de Extranjería', child: Text('Cédula de Extranjería')),
                     ],
                     onChanged: (val) {

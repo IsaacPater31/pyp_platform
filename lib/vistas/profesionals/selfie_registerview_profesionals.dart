@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pyp_platform/controladores/profesionals/register_profesionals_firststep.dart';
+import 'package:pyp_platform/vistas/profesionals/documents_register_profesionals.dart';
 
 class SelfieRegisterViewProfessionals extends StatefulWidget {
   final ProfessionalFirstStepController controller;
@@ -51,13 +52,16 @@ class _SelfieRegisterViewProfessionalsState extends State<SelfieRegisterViewProf
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(widget.controller.apiMessage), backgroundColor: Colors.green),
       );
-      // Aquí puedes navegar al siguiente paso, por ejemplo:
-      // Navigator.push(context, MaterialPageRoute(builder: (_) => DocumentosRegisterViewProfessionals(controller: widget.controller)));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.controller.apiMessage), backgroundColor: Colors.red),
+      await Future.delayed(const Duration(milliseconds: 700));
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DocumentsRegisterViewProfessionals(controller: widget.controller),
+        ),
       );
-    }
+  }
+
   }
 
   @override
