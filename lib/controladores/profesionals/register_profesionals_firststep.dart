@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -24,7 +25,9 @@ class ProfessionalFirstStepController extends ChangeNotifier {
   bool isLoading = false;
   String apiMessage = '';
 
-  // Verifica si el archivo .env está siendo cargado correctamente
+  int? idProfesional;   // <--- Nuevo: Guarda el ID profesional
+  String? selfieUrl;    // <--- Nuevo: Guarda la URL de la selfie
+
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://api.local/apispyp';
 
   void disposeControllers() {
@@ -41,6 +44,7 @@ class ProfessionalFirstStepController extends ChangeNotifier {
     ciudadSeleccionada.dispose();
   }
 
+  // --- PASO 1: Registro básico
   Future<bool> submit(BuildContext context) async {
     if (!formKey.currentState!.validate()) {
       return false;
@@ -82,6 +86,7 @@ class ProfessionalFirstStepController extends ChangeNotifier {
 
       if (response.statusCode == 201 && jsonResponse['success'] == true) {
         apiMessage = jsonResponse['message'] ?? 'Registro exitoso';
+        idProfesional = jsonResponse['profesional_id'];
         return true;
       } else {
         apiMessage = jsonResponse['message'] ?? 'Error desconocido';
@@ -90,6 +95,46 @@ class ProfessionalFirstStepController extends ChangeNotifier {
     } catch (e) {
       if (!context.mounted) return false;
       apiMessage = 'Error: ${e.toString()}';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // --- PASO 2: Subida de selfie
+  Future<bool> subirSelfie(File selfie) async {
+    if (idProfesional == null) {
+      apiMessage = 'No se encontró el ID del profesional.';
+      notifyListeners();
+      return false;
+    }
+
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final uri = Uri.parse('$baseUrl/upload_foto_profesional.php');
+      final request = http.MultipartRequest('POST', uri);
+
+      request.fields['id_profesional'] = idProfesional.toString();
+      request.files.add(await http.MultipartFile.fromPath('foto', selfie.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      final jsonResponse = json.decode(response.body);
+
+      if (response.statusCode == 200 && jsonResponse['success'] == true) {
+        selfieUrl = jsonResponse['url_foto'];  // <--- Nuevo: Guarda la URL pública
+        apiMessage = jsonResponse['message'] ?? 'Selfie subida correctamente';
+        return true;
+      } else {
+        apiMessage = jsonResponse['message'] ?? 'Error al subir la selfie';
+        return false;
+      }
+    } catch (e) {
+      apiMessage = 'Error al subir selfie: ${e.toString()}';
       return false;
     } finally {
       isLoading = false;

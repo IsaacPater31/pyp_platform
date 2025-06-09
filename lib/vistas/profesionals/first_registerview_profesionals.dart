@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pyp_platform/controladores/profesionals/register_profesionals_firststep.dart';
 import 'package:pyp_platform/vistas/profesionals/selfie_registerview_profesionals.dart';
-import 'package:url_launcher/url_launcher.dart';  
+import 'package:url_launcher/url_launcher.dart';
 
 class FirstRegisterViewProfessionals extends StatefulWidget {
   const FirstRegisterViewProfessionals({super.key});
@@ -15,10 +15,9 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
 
   bool _obscurePassword = true;
   DateTime? _selectedDate;
-  bool _acceptTerms = false;  // Variable para verificar si se aceptan los términos
+  bool _acceptTerms = false;
 
   final List<String> especialidadesDisponibles = ['Limpieza', 'Cocina', 'Planchado'];
-
   final Map<String, List<String>> departamentosYMunicipios = {
     'Atlántico': ['Barranquilla', 'Soledad'],
     'Cundinamarca': ['Bogotá', 'Soacha'],
@@ -76,7 +75,6 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
         throw 'No se pudo abrir el enlace';
       }
     } catch (e) {
-      print('Error al abrir el enlace: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo abrir el enlace.')),
       );
@@ -85,7 +83,6 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
 
   void _submitForm() async {
     if (!_acceptTerms) {
-      // Si no se ha aceptado los términos, mostramos un mensaje de error
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Debes aceptar los términos y condiciones para continuar'), backgroundColor: Colors.red),
       );
@@ -100,12 +97,13 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(controller.apiMessage), backgroundColor: Colors.green),
       );
-      // Espera un poco para que el usuario vea el mensaje
       await Future.delayed(const Duration(milliseconds: 700));
       if (!mounted) return;
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const SelfieRegisterViewProfessionals()),
+        MaterialPageRoute(
+          builder: (context) => SelfieRegisterViewProfessionals(controller: controller),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -312,7 +310,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
                     }).toList(),
                     onChanged: (val) {
                       controller.departamentoSeleccionado.value = val;
-                      controller.ciudadSeleccionada.value = null; // Limpia ciudad
+                      controller.ciudadSeleccionada.value = null;
                     },
                     validator: (val) => val == null ? 'Seleccione un departamento' : null,
                     dropdownColor: Colors.white,
@@ -322,7 +320,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
               ),
               const SizedBox(height: 16),
 
-              // Ciudad - ahora SIEMPRE depende del departamento
+              // Ciudad
               ValueListenableBuilder<String?>(
                 valueListenable: controller.departamentoSeleccionado,
                 builder: (context, departamentoValue, _) {
@@ -403,7 +401,7 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
               ),
               const SizedBox(height: 16),
 
-              // Aceptación de términos
+              // Términos y condiciones
               Row(
                 children: [
                   Checkbox(
