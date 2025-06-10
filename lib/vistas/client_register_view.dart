@@ -42,18 +42,19 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
 
       if (validation['success'] != true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(validation['message'] ?? 'Error desconocido'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text(validation['message'] ?? 'Error desconocido'),
+              backgroundColor: Colors.red),
         );
         return;
       }
 
       final locationSelected = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ClientRegisterLocationView(controller: controller),
-          ),
-        );
-
+        context,
+        MaterialPageRoute(
+          builder: (context) => ClientRegisterLocationView(controller: controller),
+        ),
+      );
 
       if (!mounted) return;
       if (locationSelected == true) {
@@ -69,7 +70,9 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
           _showSuccessMessage();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(registration['message'] ?? 'Error al registrar'), backgroundColor: Colors.red),
+            SnackBar(
+                content: Text(registration['message'] ?? 'Error al registrar'),
+                backgroundColor: Colors.red),
           );
         }
       }
@@ -163,7 +166,6 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
     if (value == null || value.length < 6) return 'La contraseña debe tener mínimo 6 caracteres';
     return null;
   }
-
   // ==============================================
 
   @override
@@ -188,6 +190,58 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
           key: controller.formKey,
           child: Column(
             children: [
+              // TIPO DE DOCUMENTO
+              DropdownButtonFormField<String>(
+                value: controller.tipoDocumentoSeleccionado,
+                decoration: InputDecoration(
+                  labelText: 'Tipo de documento',
+                  prefixIcon: const Icon(Icons.badge, color: Color(0xFF6B7280)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+                ),
+                items: controller.tiposDocumento
+                    .map((tipo) => DropdownMenuItem(
+                          value: tipo,
+                          child: Text(tipo, style: const TextStyle(color: Color(0xFF1F2937))),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    controller.tipoDocumentoSeleccionado = value;
+                  });
+                },
+                validator: (value) => value == null ? 'Seleccione tipo de documento' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // NÚMERO DE DOCUMENTO
+              TextFormField(
+                controller: controller.numeroDocumentoController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Número de documento',
+                  prefixIcon: const Icon(Icons.credit_card, color: Color(0xFF6B7280)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+                ),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'El número de documento es requerido' : null,
+                style: const TextStyle(color: Color(0xFF1F2937)),
+              ),
+              const SizedBox(height: 16),
+
               _buildTextField(
                 label: 'Nombre de usuario',
                 controller: controller.usernameController,

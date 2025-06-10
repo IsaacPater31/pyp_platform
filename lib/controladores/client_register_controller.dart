@@ -7,6 +7,14 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class ClientRegisterController with ChangeNotifier {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
+  // NUEVO: controladores tipo/número de documento
+  String? tipoDocumentoSeleccionado;
+  final List<String> tiposDocumento = [
+    'Cédula de Ciudadanía',
+    'Cédula de Extranjería',
+  ];
+  final TextEditingController numeroDocumentoController = TextEditingController();
+
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -66,6 +74,7 @@ class ClientRegisterController with ChangeNotifier {
         body: json.encode({
           'username': usernameController.text.trim(),
           'email': emailController.text.trim(),
+          'numero_documento': numeroDocumentoController.text.trim(),
         }),
       );
 
@@ -74,7 +83,7 @@ class ClientRegisterController with ChangeNotifier {
 
       if (response.statusCode == 200) {
         if (jsonResponse['error'] == true ||
-            jsonResponse['message'].contains('en uso')) {
+            (jsonResponse['message'] as String).contains('en uso')) {
           apiResponseMessage = jsonResponse['message'];
           return {'success': false, 'message': apiResponseMessage};
         }
@@ -111,6 +120,8 @@ class ClientRegisterController with ChangeNotifier {
       }
 
       final requestBody = {
+        'tipo_documento': tipoDocumentoSeleccionado,
+        'numero_documento': numeroDocumentoController.text.trim(),
         'username': usernameController.text.trim(),
         'full_name': fullNameController.text.trim(),
         'email': emailController.text.trim(),
@@ -155,6 +166,7 @@ class ClientRegisterController with ChangeNotifier {
 
   @override
   void dispose() {
+    numeroDocumentoController.dispose();
     usernameController.dispose();
     fullNameController.dispose();
     emailController.dispose();
