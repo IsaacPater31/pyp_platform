@@ -55,12 +55,21 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 
 // Validación de campos requeridos
 $errors = [];
-$requiredFields = ['username', 'email', 'password', 'latitud', 'longitud'];
+$requiredFields = [
+    'username', 'email', 'password', 'latitud', 'longitud',
+    'tipo_documento', 'numero_documento'
+];
 
 foreach ($requiredFields as $field) {
     if (empty($data[$field])) {
         $errors[$field] = "Campo requerido";
     }
+}
+
+// Validar tipo_documento
+$tiposValidos = ['Cédula de Ciudadanía', 'Cédula de Extranjería'];
+if (!in_array($data['tipo_documento'] ?? '', $tiposValidos)) {
+    $errors['tipo_documento'] = 'Tipo de documento inválido';
 }
 
 if (!filter_var($data['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
@@ -80,19 +89,20 @@ if (!empty($errors)) {
 }
 
 try {
-    // Verificar si el usuario o email ya existen
-    $checkQuery = "SELECT id FROM clientes WHERE username = ? OR email = ?";
+    // Verificar si username, email o numero_documento ya existen
+    $checkQuery = "SELECT id FROM clientes WHERE username = ? OR email = ? OR numero_documento = ?";
     $stmt = $conn->prepare($checkQuery);
 
     $username = $data['username'] ?? '';
     $email = $data['email'] ?? '';
+    $numero_documento = $data['numero_documento'] ?? '';
 
-    $stmt->bind_param("ss", $username, $email);
+    $stmt->bind_param("sss", $username, $email, $numero_documento);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
-        $response['message'] = 'El usuario o email ya existen';
+        $response['message'] = 'El usuario, email o número de documento ya existen';
         http_response_code(409);
         echo json_encode($response);
         exit;
@@ -107,13 +117,11 @@ try {
     }
 
     $insertQuery = "INSERT INTO clientes (
-        username, full_name, email, phone, password, fecha_nacimiento,
+        tipo_documento, numero_documento, username, full_name, email, phone, password, fecha_nacimiento,
         departamento, ciudad, postal_code, detalle_direccion, ubicacion
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_GeomFromText(?))";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ST_GeomFromText(?))";
 
     $point = "POINT(" . floatval($data['latitud']) . " " . floatval($data['longitud']) . ")";
-
-    $stmt = $conn->prepare($insertQuery);
 
     $full_name = $data['full_name'] ?? '';
     $phone = $data['phone'] ?? '';
@@ -124,7 +132,11 @@ try {
 
     $fechaNacimientoForBind = $fechaNacimiento ?? null;
 
-    $stmt->bind_param("sssssssssss", 
+    $stmt = $conn->prepare($insertQuery);
+
+    $stmt->bind_param("sssssssssssss",
+        $data['tipo_documento'],
+        $data['numero_documento'],
         $data['username'],
         $full_name,
         $data['email'],

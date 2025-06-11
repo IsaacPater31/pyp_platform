@@ -41,18 +41,21 @@ $input = json_decode(file_get_contents("php://input"), true);
 
 $username = isset($input['username']) ? trim($input['username']) : null;
 $email = isset($input['email']) ? trim($input['email']) : null;
+$numero_documento = isset($input['numero_documento']) ? trim($input['numero_documento']) : null;
 
-if (!$username && !$email) {
+// Debe enviar al menos uno
+if (!$username && !$email && !$numero_documento) {
     http_response_code(400);
     echo json_encode([
         'error' => true,
-        'message' => 'Debe proporcionar al menos un nombre de usuario o un correo electrónico.'
+        'message' => 'Debe proporcionar al menos un nombre de usuario, un correo electrónico o un número de documento.'
     ]);
     exit;
 }
 
 $username_in_use = false;
 $email_in_use = false;
+$document_in_use = false;
 
 // Verificar si el nombre de usuario ya existe
 if ($username) {
@@ -84,25 +87,44 @@ if ($email) {
     $stmt->close();
 }
 
-// Crear mensaje final y determinar si es un error
-if ($username_in_use && $email_in_use) {
-    $message = 'El nombre de usuario y el correo electrónico ya están en uso.';
-    $is_error = true;
-} elseif ($username_in_use) {
-    $message = 'El nombre de usuario ya está en uso.';
-    $is_error = true;
-} elseif ($email_in_use) {
-    $message = 'El correo electrónico ya está en uso.';
-    $is_error = true;
-} else {
-    $message = 'Disponible para registro.';
-    $is_error = false;
+// Verificar si el número de documento ya existe
+if ($numero_documento) {
+    $stmt = $conn->prepare("SELECT id FROM clientes WHERE numero_documento = ?");
+    if (!$stmt) {
+        http_response_code(500);
+        echo json_encode(['error' => true, 'message' => 'Error al verificar el número de documento']);
+        exit;
+    }
+    $stmt->bind_param("s", $numero_documento);
+    $stmt->execute();
+    $stmt->store_result();
+    $document_in_use = $stmt->num_rows > 0;
+    $stmt->close();
 }
 
-// Respuesta con lógica corregida
+// Crear mensaje final y determinar si es un error
+$messages = [];
+$is_error = false;
+if ($username_in_use) {
+    $messages[] = 'El nombre de usuario ya está en uso.';
+    $is_error = true;
+}
+if ($email_in_use) {
+    $messages[] = 'El correo electrónico ya está en uso.';
+    $is_error = true;
+}
+if ($document_in_use) {
+    $messages[] = 'El número de documento ya está en uso.';
+    $is_error = true;
+}
+if (!$is_error) {
+    $messages[] = 'Disponible para registro.';
+}
+
+// Respuesta
 echo json_encode([
     'error' => $is_error,
-    'message' => $message
+    'message' => implode(" ", $messages)
 ]);
 
 $conn->close();

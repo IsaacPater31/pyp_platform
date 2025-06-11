@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit();
 }
 
-// Configuración de la conexión
+// Configuración de la conexión - HOSTING
 $host = "localhost";
 $user = "root";
 $pass = "";
