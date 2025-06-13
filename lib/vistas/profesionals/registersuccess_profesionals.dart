@@ -5,10 +5,12 @@ class RegisterSuccessProfessionalsView extends StatefulWidget {
   const RegisterSuccessProfessionalsView({super.key});
 
   @override
-  State<RegisterSuccessProfessionalsView> createState() => _RegisterSuccessProfessionalsViewState();
+  State<RegisterSuccessProfessionalsView> createState() =>
+      _RegisterSuccessProfessionalsViewState();
 }
 
-class _RegisterSuccessProfessionalsViewState extends State<RegisterSuccessProfessionalsView>
+class _RegisterSuccessProfessionalsViewState
+    extends State<RegisterSuccessProfessionalsView>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -72,10 +74,31 @@ class _RegisterSuccessProfessionalsViewState extends State<RegisterSuccessProfes
             children: [
               ScaleTransition(
                 scale: _scaleAnimation,
-                child: const Icon(
-                  Icons.verified,
-                  color: Color(0xFF10B981),
-                  size: 120,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.orange,
+                      width: 8,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withAlpha(10),
+                        blurRadius: 10,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.verified,
+                      color: Color(0xFFFF9800), // naranja
+                      size: 80,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 40),
@@ -84,7 +107,7 @@ class _RegisterSuccessProfessionalsViewState extends State<RegisterSuccessProfes
                 child: SlideTransition(
                   position: _slideAnimation,
                   child: const Text(
-                    '¡Registro Completado!',
+                    '¡Registro Pendiente!',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -95,15 +118,42 @@ class _RegisterSuccessProfessionalsViewState extends State<RegisterSuccessProfes
                 ),
               ),
               const SizedBox(height: 16),
+              // Línea horizontal decorativa
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Divider(
+                          color: Colors.orange,
+                          thickness: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Icon(Icons.access_time_rounded, color: Colors.orange),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Divider(
+                          color: Colors.orange,
+                          thickness: 2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: SlideTransition(
                   position: _slideAnimation,
                   child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24.0),
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
-                      'Tu cuenta profesional ha sido creada exitosamente. '
-                      'Ahora puedes iniciar sesión y disfrutar de todos nuestros servicios.',
+                      'Tu registro está pendiente de aprobación.\n'
+                      'Estamos revisando que cumplas con los documentos y la veracidad de la información.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
@@ -132,7 +182,7 @@ class _RegisterSuccessProfessionalsViewState extends State<RegisterSuccessProfes
                         shadowColor: Colors.transparent,
                       ),
                       child: const Text(
-                        'Iniciar Sesión',
+                        'Volver al inicio de sesión',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.white,
