@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pyp_platform/vistas/role_selection_view.dart';  // Vista para crear cuenta
 import 'package:pyp_platform/controladores/login_controller.dart';  // El controlador del login
+import 'package:pyp_platform/vistas/services/clients/main_client_view.dart';
+import 'package:pyp_platform/vistas/services/profesionals/main_profesional_view.dart'; // Importa tu vista principal profesional
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -126,7 +128,19 @@ class _LoginViewState extends State<LoginView> {
                         final loginResult = await _controller.login();
 
                         if (loginResult['success']) {
-                          Navigator.pushReplacementNamed(context, '/dashboard');
+                          if (_controller.selectedRole == 'profesional') {
+                            // Redirige a la vista profesional
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const MainProfesionalView()),
+                            );
+                          } else if (_controller.selectedRole == 'cliente') {
+                            Navigator.pushReplacement(context,
+                            MaterialPageRoute(builder: (context) => const MainClientView()),
+                                            );
+
+                          }
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(loginResult['message'])),
