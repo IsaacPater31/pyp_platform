@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:pyp_platform/controladores/profesionals/register_profesionals_firststep.dart';
 import 'package:pyp_platform/vistas/profesionals/registerfailed_profesionals.dart';
-import 'package:pyp_platform/vistas/profesionals/registersuccess_profesionals.dart'; 
+import 'package:pyp_platform/vistas/profesionals/registersuccess_profesionals.dart';
 
 class DocumentsRegisterViewProfessionals extends StatefulWidget {
   final ProfessionalFirstStepController controller;
@@ -38,6 +38,7 @@ class _DocumentsRegisterViewProfessionalsState extends State<DocumentsRegisterVi
           }
         });
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Solo se permiten imágenes (jpg, jpeg, png, webp).')),
         );
@@ -66,56 +67,28 @@ class _DocumentsRegisterViewProfessionalsState extends State<DocumentsRegisterVi
   }
 
   Future<void> _uploadDocuments() async {
-  if (_frontDocument == null || _reverseDocument == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Debes subir ambas fotos del documento de identidad.')),
-    );
-    return;
-  }
-  if (_antecedentesPdf == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Debes subir el certificado de antecedentes (PDF).')),
-    );
-    return;
-  }
+    if (_frontDocument == null || _reverseDocument == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Debes subir ambas fotos del documento de identidad.')),
+      );
+      return;
+    }
+    if (_antecedentesPdf == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Debes subir el certificado de antecedentes (PDF).')),
+      );
+      return;
+    }
 
-  setState(() => _isUploading = true);
+    setState(() => _isUploading = true);
 
-  // SUBIDA FRONTAL
-  final frontalOK = await widget.controller.subirDocumentoFrontal(_frontDocument!);
-  if (!frontalOK) {
-    setState(() => _isUploading = false);
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RegisterFailedProfessionalsView(
-          errorMessage: widget.controller.apiMessage,
-        ),
-      ),
-    );
-    return;
-  }
-
-  // SUBIDA REVERSO
-  final reversoOK = await widget.controller.subirDocumentoReverso(_reverseDocument!);
-  if (!reversoOK) {
-    setState(() => _isUploading = false);
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RegisterFailedProfessionalsView(
-          errorMessage: widget.controller.apiMessage,
-        ),
-      ),
-    );
-    return;
-  }
-
-  // SUBIDA CERTIFICADOS (opcional)
-  if (_certificatesPdf != null) {
-    final certOK = await widget.controller.subirCertificadosEspecialidad(_certificatesPdf!);
-    if (!certOK) {
+    // SUBIDA FRONTAL
+    final frontalOK = await widget.controller.subirDocumentoFrontal(_frontDocument!);
+    if (!frontalOK) {
       setState(() => _isUploading = false);
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -126,46 +99,81 @@ class _DocumentsRegisterViewProfessionalsState extends State<DocumentsRegisterVi
       );
       return;
     }
-  }
 
-  // SUBIDA ANTECEDENTES
-  final antOK = await widget.controller.subirAntecedentes(_antecedentesPdf!);
-  if (!antOK) {
+    // SUBIDA REVERSO
+    final reversoOK = await widget.controller.subirDocumentoReverso(_reverseDocument!);
+    if (!reversoOK) {
+      setState(() => _isUploading = false);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RegisterFailedProfessionalsView(
+            errorMessage: widget.controller.apiMessage,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // SUBIDA CERTIFICADOS (opcional)
+    if (_certificatesPdf != null) {
+      final certOK = await widget.controller.subirCertificadosEspecialidad(_certificatesPdf!);
+      if (!certOK) {
+        setState(() => _isUploading = false);
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RegisterFailedProfessionalsView(
+              errorMessage: widget.controller.apiMessage,
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    // SUBIDA ANTECEDENTES
+    final antOK = await widget.controller.subirAntecedentes(_antecedentesPdf!);
+    if (!antOK) {
+      setState(() => _isUploading = false);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RegisterFailedProfessionalsView(
+            errorMessage: widget.controller.apiMessage,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // LLAMADA AL API PARA MARCAR COMO COMPLETO
+    final registroCompletoOK = await widget.controller.marcarRegistroCompleto();
     setState(() => _isUploading = false);
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RegisterFailedProfessionalsView(
-          errorMessage: widget.controller.apiMessage,
+
+    if (!registroCompletoOK) {
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RegisterFailedProfessionalsView(
+            errorMessage: widget.controller.apiMessage,
+          ),
         ),
-      ),
-    );
-    return;
-  }
+      );
+      return;
+    }
 
-  // LLAMADA AL API PARA MARCAR COMO COMPLETO
-  final registroCompletoOK = await widget.controller.marcarRegistroCompleto();
-  setState(() => _isUploading = false);
-
-  if (!registroCompletoOK) {
-    Navigator.pushReplacement(
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (_) => RegisterFailedProfessionalsView(
-          errorMessage: widget.controller.apiMessage,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => const RegisterSuccessProfessionalsView()),
+      (route) => false,
     );
-    return;
   }
-
-  Navigator.pushAndRemoveUntil(
-    context,
-    MaterialPageRoute(builder: (_) => const RegisterSuccessProfessionalsView()),
-    (route) => false,
-  );
-}
-
 
   Widget _filePreview(File? file, {bool isPdf = false, String? label}) {
     if (file == null) {

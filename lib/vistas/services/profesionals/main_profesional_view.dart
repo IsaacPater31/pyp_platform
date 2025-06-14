@@ -8,19 +8,14 @@ class MainProfesionalView extends StatefulWidget {
 }
 
 class _MainProfesionalViewState extends State<MainProfesionalView> {
-  int _selectedIndex = 2; // El centro es por defecto: servicios nuevos
+  int _selectedIndex = 2; // Por defecto: Servicios Nuevos (centro)
 
-  // Puedes expandir aquí tus páginas
+  // Páginas del menú inferior
   final List<Widget> _pages = [
-    // Mis Servicios
     _MisServiciosProfesional(),
-    // Estadísticas
     _EstadisticasProfesional(),
-    // Servicios Nuevos
     _ServiciosNuevosProfesional(),
-    // Noticias
     _NoticiasProfesional(),
-    // Perfil
     _PerfilProfesional(),
   ];
 
@@ -30,7 +25,6 @@ class _MainProfesionalViewState extends State<MainProfesionalView> {
     });
   }
 
-  // Ícono central especial
   Widget _buildCentralIcon() {
     return FloatingActionButton(
       onPressed: () {
@@ -38,10 +32,10 @@ class _MainProfesionalViewState extends State<MainProfesionalView> {
       },
       backgroundColor: const Color(0xFF1F2937),
       elevation: 6,
-      child: const Icon(Icons.fiber_new_rounded, size: 32, color: Colors.white),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(40),
       ),
+      child: const Icon(Icons.fiber_new_rounded, size: 32, color: Colors.white),
     );
   }
 
@@ -72,7 +66,7 @@ class _MainProfesionalViewState extends State<MainProfesionalView> {
                 selected: _selectedIndex == 1,
                 onTap: () => _onItemTapped(1),
               ),
-              const SizedBox(width: 48), // Espacio para el FAB central
+              const SizedBox(width: 48), // Espacio para el botón central
               _BottomMenuIcon(
                 icon: Icons.newspaper_outlined,
                 label: 'Noticias',
@@ -95,7 +89,7 @@ class _MainProfesionalViewState extends State<MainProfesionalView> {
   }
 }
 
-// --- Secciones de la Interfaz ---
+// -------- Secciones para el profesional --------
 
 class _MisServiciosProfesional extends StatelessWidget {
   @override
@@ -132,25 +126,25 @@ class _EstadisticasProfesional extends StatelessWidget {
 class _ServiciosNuevosProfesional extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Aquí puedes hacer una FutureBuilder/StreamBuilder para cargar servicios en tiempo real
+    // Aquí puedes agregar tu lógica de FutureBuilder/StreamBuilder para los servicios nuevos
     return _PageContainer(
       title: "Servicios Nuevos",
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        itemCount: 6, // Cambia por la cantidad de servicios nuevos
-        separatorBuilder: (_, __) => SizedBox(height: 14),
+        itemCount: 6, // Puedes reemplazar esto con la cantidad real de servicios
+        separatorBuilder: (_, __) => const SizedBox(height: 14),
         itemBuilder: (context, index) => Card(
           elevation: 3,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           color: Colors.white,
           child: ListTile(
-            leading: Icon(Icons.miscellaneous_services_rounded, color: Color(0xFF1F2937)),
+            leading: const Icon(Icons.miscellaneous_services_rounded, color: Color(0xFF1F2937)),
             title: Text(
               'Servicio #${index + 1}',
-              style: TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
+              style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
             ),
-            subtitle: Text('Tipo de servicio - Área geográfica\nDuración estimada: 2 horas'),
-            trailing: Icon(Icons.arrow_forward_ios, color: Color(0xFF1F2937)),
+            subtitle: const Text('Tipo de servicio - Área geográfica\nDuración estimada: 2 horas'),
+            trailing: const Icon(Icons.arrow_forward_ios, color: Color(0xFF1F2937)),
             onTap: () {
               // Aquí puedes mostrar el detalle del servicio
               showDialog(
@@ -206,7 +200,7 @@ class _PerfilProfesional extends StatelessWidget {
   }
 }
 
-// --- Componentes de apoyo ---
+// ------ Componentes base ------
 
 class _PageContainer extends StatelessWidget {
   final String title;

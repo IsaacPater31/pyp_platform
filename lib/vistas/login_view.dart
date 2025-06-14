@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pyp_platform/vistas/role_selection_view.dart';  // Vista para crear cuenta
 import 'package:pyp_platform/controladores/login_controller.dart';  // El controlador del login
 import 'package:pyp_platform/vistas/services/clients/main_client_view.dart';
-import 'package:pyp_platform/vistas/services/profesionals/main_profesional_view.dart'; // Importa tu vista principal profesional
+import 'package:pyp_platform/vistas/services/profesionals/main_profesional_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -50,8 +50,6 @@ class _LoginViewState extends State<LoginView> {
               ],
             ),
           ),
-
-          // Formulario centrado
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
@@ -65,7 +63,6 @@ class _LoginViewState extends State<LoginView> {
                       height: 300,
                     ),
                   ),
-
                   // Campo de rol
                   DropdownButtonFormField<String>(
                     decoration: InputDecoration(
@@ -127,19 +124,20 @@ class _LoginViewState extends State<LoginView> {
                       onPressed: () async {
                         final loginResult = await _controller.login();
 
+                        if (!context.mounted) return;
+
                         if (loginResult['success']) {
                           if (_controller.selectedRole == 'profesional') {
-                            // Redirige a la vista profesional
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
                                   builder: (context) => const MainProfesionalView()),
                             );
                           } else if (_controller.selectedRole == 'cliente') {
-                            Navigator.pushReplacement(context,
-                            MaterialPageRoute(builder: (context) => const MainClientView()),
-                                            );
-
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => const MainClientView()),
+                            );
                           }
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -161,8 +159,6 @@ class _LoginViewState extends State<LoginView> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // Botón para crear cuenta
                   Center(
                     child: TextButton(
                       onPressed: () {

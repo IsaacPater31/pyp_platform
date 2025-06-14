@@ -49,11 +49,9 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
   }
 
   Future<void> _initLocation() async {
-    // Verificar y solicitar permisos de ubicación
     PermissionStatus permissionStatus = await Permission.location.request();
 
     if (permissionStatus.isGranted) {
-      // Si el permiso está concedido, obtener la ubicación
       try {
         setState(() => _isLoading = true);
         final position = await Geolocator.getCurrentPosition();
@@ -79,13 +77,12 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
         }
       }
     } else if (permissionStatus.isDenied) {
-      // Si el permiso es denegado, muestra un mensaje
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Permiso de ubicación denegado')),
       );
     } else if (permissionStatus.isPermanentlyDenied) {
-      // Si el permiso es permanentemente denegado, abre la configuración
-      openAppSettings(); // Abre la configuración de la app para habilitar el permiso manualmente
+      openAppSettings();
     }
   }
 
@@ -173,7 +170,7 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 26),
+                    color: Colors.black.withAlpha(26),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -206,7 +203,7 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 26),
+            color: Colors.black.withAlpha(26),
             blurRadius: 10,
             spreadRadius: 2,
           ),
@@ -233,7 +230,6 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
             onPressed: () async {
               final fullAddress =
                   '${_selectedAddress ?? "Ubicación seleccionada"} ${_addressDetailController.text}';
-              // Guarda la ubicación y dirección en el controller
               widget.controller.setLocation(_currentCenter, fullAddress);
 
               // Mostrar loading mientras se registra
@@ -243,20 +239,17 @@ class _ClientRegisterLocationViewState extends State<ClientRegisterLocationView>
                 builder: (_) => const Center(child: CircularProgressIndicator()),
               );
 
-              // Ejecuta el registro
               final result = await widget.controller.completeRegistration();
 
               if (!mounted) return;
-              Navigator.pop(context); // Cierra loading
+              Navigator.pop(context);
 
               if (result['success'] == true) {
-                // Registro exitoso → Success
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const RegisterSuccessView()),
                   (route) => false,
                 );
               } else {
-                // Registro fallido → Failure
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => RegisterFailedView(errorMessage: result['message'])),
                   (route) => false,

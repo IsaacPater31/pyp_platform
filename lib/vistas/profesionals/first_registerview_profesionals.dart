@@ -62,14 +62,19 @@ class _FirstRegisterViewProfessionalsState extends State<FirstRegisterViewProfes
 
   Future<void> _launchURL() async {
     const url = 'https://pypplatform.liveblog365.com/TerminosCondiciones/';
-    final Uri _url = Uri.parse(url);
+    final Uri launchUrlUri = Uri.parse(url); // CORREGIDO: nombre sin guión bajo inicial
     try {
-      if (await canLaunchUrl(_url)) {
-        await launchUrl(_url, mode: LaunchMode.externalApplication);
+      if (await canLaunchUrl(launchUrlUri)) {
+        await launchUrl(launchUrlUri, mode: LaunchMode.externalApplication);
       } else {
-        throw 'No se pudo abrir el enlace';
+        // No usar context después del await anterior sin mounted
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir el enlace.')),
+        );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo abrir el enlace.')),
       );
