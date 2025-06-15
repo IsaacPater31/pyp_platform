@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+import 'package:pyp_platform/providers/user_provider.dart';
 import 'package:pyp_platform/vistas/splash_screen.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: "config.env");
-  await dotenv.load(fileName: "config.env");
 
-
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => UserProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

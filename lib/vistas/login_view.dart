@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:pyp_platform/vistas/role_selection_view.dart';  // Vista para crear cuenta
-import 'package:pyp_platform/controladores/login_controller.dart';  // El controlador del login
+import 'package:pyp_platform/vistas/role_selection_view.dart';
+import 'package:pyp_platform/controladores/login_controller.dart';
 import 'package:pyp_platform/vistas/services/clients/main_client_view.dart';
 import 'package:pyp_platform/vistas/services/profesionals/main_profesional_view.dart';
+import 'package:provider/provider.dart';
+import 'package:pyp_platform/providers/user_provider.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -127,6 +129,13 @@ class _LoginViewState extends State<LoginView> {
                         if (!context.mounted) return;
 
                         if (loginResult['success']) {
+                          // GUARDAR usuario y rol usando Provider
+                          final userProvider = Provider.of<UserProvider>(context, listen: false);
+                          userProvider.login(
+                            _controller.usernameController.text.trim(),
+                            _controller.selectedRole ?? '',
+                          );
+
                           if (_controller.selectedRole == 'profesional') {
                             Navigator.pushReplacement(
                               context,
