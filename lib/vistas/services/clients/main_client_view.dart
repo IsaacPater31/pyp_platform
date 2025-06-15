@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // <-- Necesario para usar el Provider
 import 'package:pyp_platform/providers/user_provider.dart'; // <-- Ajusta el path si tu archivo está en otra ruta
-
 import 'myservices_client_view.dart';
 import 'stats_client_view.dart';
 import 'news_client.dart';
@@ -119,6 +118,7 @@ class _MainClientViewState extends State<MainClientView> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     print('USUARIO LOGUEADO: ${userProvider.username}');
     print('ROL ACTUAL: ${userProvider.role}');
+    print('ID ACTUAL, ${userProvider.userId}');
     // --------------------------------------------------------
 
     final List<Widget> _pages = [
@@ -362,3 +362,4 @@ class _CreateServiceDialogState extends State<CreateServiceDialog> {
     );
   }
 }
+ 

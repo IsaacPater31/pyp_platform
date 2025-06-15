@@ -64,6 +64,26 @@ class LoginController {
     }
   }
 
+  Future<int?> buscarIdPorUsernameYRol(String username, String rol) async {
+  final url = Uri.parse('$baseUrl/buscar_id_usuario.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'username': username, 'rol': rol}),
+    );
+    final data = json.decode(response.body);
+    if (data['success'] == true && data['id'] != null) {
+      return data['id'];
+    }
+    return null;
+  } catch (e) {
+    print('Error buscando id: $e');
+    return null;
+  }
+}
+
+
   void dispose() {
     usernameController.dispose();
     passwordController.dispose();

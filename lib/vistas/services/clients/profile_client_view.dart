@@ -48,6 +48,32 @@ class ProfileClientView extends StatelessWidget {
                       title: Text(cliente.fullName),
                       subtitle: Text(cliente.email),
                     ),
+                    // Estado de suscripción destacado aquí
+                    ListTile(
+                      leading: Icon(
+                        cliente.estadoSuscripcion == "activa"
+                            ? Icons.verified_user
+                            : Icons.lock_outline,
+                        color: cliente.estadoSuscripcion == "activa"
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                      title: Text(
+                        "Estado de suscripción",
+                        style: TextStyle(color: Color(0xFF1F2937)),
+                      ),
+                      subtitle: Text(
+                        cliente.estadoSuscripcion == "activa"
+                            ? "Activa"
+                            : "Inactiva",
+                        style: TextStyle(
+                          color: cliente.estadoSuscripcion == "activa"
+                              ? Colors.green
+                              : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                     Divider(),
                     ListTile(
                       leading: Icon(Icons.phone, color: Color(0xFF1F2937)),
@@ -86,7 +112,8 @@ class ProfileClientView extends StatelessWidget {
                           ),
                           children: [
                             TileLayer(
-                              urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                              urlTemplate:
+                                  "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                               userAgentPackageName: 'com.example.pyp_platform',
                             ),
                             if (hasCoords)
@@ -110,7 +137,8 @@ class ProfileClientView extends StatelessWidget {
                                 padding: const EdgeInsets.all(4.0),
                                 child: Text(
                                   "© OpenStreetMap contributors",
-                                  style: TextStyle(fontSize: 10, color: Colors.grey[700]),
+                                  style: TextStyle(
+                                      fontSize: 10, color: Colors.grey[700]),
                                 ),
                               ),
                             ),

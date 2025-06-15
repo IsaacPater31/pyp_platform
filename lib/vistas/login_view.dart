@@ -129,20 +129,32 @@ class _LoginViewState extends State<LoginView> {
                         if (!context.mounted) return;
 
                         if (loginResult['success']) {
-                          // GUARDAR usuario y rol usando Provider
+                          // GUARDAR usuario y rol usando Provider (sin ID aún)
                           final userProvider = Provider.of<UserProvider>(context, listen: false);
-                          userProvider.login(
-                            _controller.usernameController.text.trim(),
-                            _controller.selectedRole ?? '',
-                          );
+                          final username = _controller.usernameController.text.trim();
+                          final rol = _controller.selectedRole ?? '';
 
-                          if (_controller.selectedRole == 'profesional') {
+                          userProvider.login(username, rol);
+
+                          // BUSCAR el ID y guardarlo en el provider
+                          final userId = await _controller.buscarIdPorUsernameYRol(username, rol);
+                          if (userId != null) {
+                            userProvider.setUserId(userId);
+                            // print('ID guardado en provider: $userId');
+                          } else {
+                            // Manejo si no se encuentra el ID (opcional)
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('No se pudo obtener el ID del usuario')),
+                            );
+                          }
+
+                          // NAVEGAR
+                          if (rol == 'profesional') {
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(
-                                  builder: (context) => const MainProfesionalView()),
+                              MaterialPageRoute(builder: (context) => const MainProfesionalView()),
                             );
-                          } else if (_controller.selectedRole == 'cliente') {
+                          } else if (rol == 'cliente') {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(builder: (context) => const MainClientView()),
@@ -154,6 +166,7 @@ class _LoginViewState extends State<LoginView> {
                           );
                         }
                       },
+
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1F2937),
                         padding: const EdgeInsets.symmetric(vertical: 16),
