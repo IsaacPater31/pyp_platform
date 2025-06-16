@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // <-- Necesario para usar el Provider
-import 'package:pyp_platform/providers/user_provider.dart'; // <-- Ajusta el path si tu archivo está en otra ruta
+import 'package:provider/provider.dart';
+import 'package:pyp_platform/providers/user_provider.dart';
+import 'package:pyp_platform/controladores/services/clientmain_controller.dart'; // Importa el controlador
 import 'myservices_client_view.dart';
 import 'stats_client_view.dart';
 import 'news_client.dart';
@@ -17,8 +18,6 @@ class MainClientView extends StatefulWidget {
 
 class _MainClientViewState extends State<MainClientView> {
   int _selectedIndex = 2; // Por defecto en "Nuevo Servicio"
-
-  // Ofertas simuladas y las que el usuario agregue
   final List<Map<String, Object?>> _ofertas = [
     {
       'profesional': 'Laura Ríos',
@@ -54,22 +53,44 @@ class _MainClientViewState extends State<MainClientView> {
     );
   }
 
-  // --- Muestra el formulario de creación de servicio ---
   void _showCreateServiceForm(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => CreateServiceDialog(
-        onServiceCreated: (especialidad, descripcion, precio, observaciones) {
-          Navigator.pop(context);
+        onServiceCreated: ({
+          required int idEspecialidad,
+          required String descripcion,
+          required double precioCliente,
+          required String fecha,
+          required String franjaHoraria,
+        }) async {
+          Navigator.pop(context); // Cierra el dialog
+
+          final userProvider = Provider.of<UserProvider>(context, listen: false);
+          final idCliente = userProvider.userId ?? 0;
+
+          final controller = ClientMainController();
+          final success = await controller.crearServicio(
+            idCliente: idCliente,
+            idEspecialidad: idEspecialidad,
+            descripcion: descripcion,
+            precioCliente: precioCliente,
+            fecha: fecha,
+            franjaHoraria: franjaHoraria,
+          );
+
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('¡Servicio publicado para profesionales!')),
+            SnackBar(
+              content: Text(success
+                  ? '¡Servicio publicado correctamente!'
+                  : 'Error al publicar el servicio. Intenta de nuevo.'),
+            ),
           );
         },
       ),
     );
   }
 
-  // --- Regatear una oferta ---
   void _regatearOferta(int index) async {
     final controller = TextEditingController();
     final result = await showDialog<int>(
@@ -114,12 +135,7 @@ class _MainClientViewState extends State<MainClientView> {
 
   @override
   Widget build(BuildContext context) {
-    // ----------- LÍNEAS AGREGADAS PARA MOSTRAR USUARIO Y ROL ----------
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    print('USUARIO LOGUEADO: ${userProvider.username}');
-    print('ROL ACTUAL: ${userProvider.role}');
-    print('ID ACTUAL, ${userProvider.userId}');
-    // --------------------------------------------------------
 
     final List<Widget> _pages = [
       const MyServicesClientView(),
@@ -182,7 +198,6 @@ class _MainClientViewState extends State<MainClientView> {
 }
 
 // ----------- Página central (Ofertas y crear servicio) ------------
-
 class _OfertasYCrearServicioClient extends StatelessWidget {
   final List<Map<String, Object?>> ofertas;
   final VoidCallback onCrearServicio;
@@ -285,7 +300,13 @@ class _OfertasYCrearServicioClient extends StatelessWidget {
 
 // --------- Dialog para crear servicio ---------
 class CreateServiceDialog extends StatefulWidget {
-  final void Function(String especialidad, String descripcion, int precio, String observaciones) onServiceCreated;
+  final void Function({
+    required int idEspecialidad,
+    required String descripcion,
+    required double precioCliente,
+    required String fecha,
+    required String franjaHoraria,
+  }) onServiceCreated;
 
   const CreateServiceDialog({
     required this.onServiceCreated,
@@ -298,10 +319,38 @@ class CreateServiceDialog extends StatefulWidget {
 
 class _CreateServiceDialogState extends State<CreateServiceDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _especialidadController = TextEditingController();
+  String? _especialidadSeleccionada;
+  String? _franjaSeleccionada;
+  DateTime? _fechaSeleccionada;
   final _descripcionController = TextEditingController();
   final _precioController = TextEditingController();
-  final _obsController = TextEditingController();
+
+  final Map<String, int> especialidadMap = {
+    "Limpieza": 1,
+    "Cocina": 2,
+    "Planchado": 3,
+  };
+
+  final List<String> franjas = [
+    "mañana",
+    "tarde",
+    "noche",
+  ];
+
+  Future<void> _pickDate(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(now.year + 1),
+    );
+    if (picked != null) {
+      setState(() {
+        _fechaSeleccionada = picked;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -313,28 +362,83 @@ class _CreateServiceDialogState extends State<CreateServiceDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                controller: _especialidadController,
-                decoration: InputDecoration(labelText: "Especialidad solicitada (ej. Limpieza)"),
-                validator: (value) => value == null || value.isEmpty ? 'Requerido' : null,
+              DropdownButtonFormField<String>(
+                value: _especialidadSeleccionada,
+                items: especialidadMap.keys
+                    .map((nombre) => DropdownMenuItem(
+                          value: nombre,
+                          child: Text(nombre),
+                        ))
+                    .toList(),
+                decoration: InputDecoration(labelText: "Especialidad"),
+                onChanged: (value) {
+                  setState(() {
+                    _especialidadSeleccionada = value;
+                  });
+                },
+                validator: (value) => value == null || value.isEmpty ? 'Selecciona una especialidad' : null,
               ),
+              SizedBox(height: 12),
               TextFormField(
                 controller: _descripcionController,
                 decoration: InputDecoration(labelText: "Descripción"),
                 validator: (value) => value == null || value.isEmpty ? 'Requerido' : null,
               ),
+              SizedBox(height: 12),
               TextFormField(
                 controller: _precioController,
                 decoration: InputDecoration(labelText: "Precio propuesto (COP)"),
                 keyboardType: TextInputType.number,
                 validator: (value) {
-                  final v = int.tryParse(value ?? "");
+                  final v = double.tryParse(value ?? "");
                   return v == null || v <= 0 ? 'Precio válido requerido' : null;
                 },
               ),
-              TextFormField(
-                controller: _obsController,
-                decoration: InputDecoration(labelText: "Observaciones (opcional)"),
+              SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _franjaSeleccionada,
+                items: franjas
+                    .map((franja) => DropdownMenuItem(
+                          value: franja,
+                          child: Text(franja),
+                        ))
+                    .toList(),
+                decoration: InputDecoration(labelText: "Franja horaria"),
+                onChanged: (value) {
+                  setState(() {
+                    _franjaSeleccionada = value;
+                  });
+                },
+                validator: (value) => value == null || value.isEmpty ? 'Selecciona una franja' : null,
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: "Fecha",
+                        errorText: _fechaSeleccionada == null ? "Selecciona una fecha" : null,
+                        border: OutlineInputBorder(),
+                      ),
+                      child: TextButton(
+                        onPressed: () => _pickDate(context),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _fechaSeleccionada == null
+                                ? "Selecciona una fecha"
+                                : "${_fechaSeleccionada!.year}-${_fechaSeleccionada!.month.toString().padLeft(2, '0')}-${_fechaSeleccionada!.day.toString().padLeft(2, '0')}",
+                            style: TextStyle(
+                              color: _fechaSeleccionada == null ? Colors.grey : Colors.black,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -347,13 +451,18 @@ class _CreateServiceDialogState extends State<CreateServiceDialog> {
         ),
         ElevatedButton(
           onPressed: () {
-            if (_formKey.currentState!.validate()) {
+            final isFormValid = _formKey.currentState!.validate();
+            final isDateSelected = _fechaSeleccionada != null;
+            if (isFormValid && isDateSelected) {
               widget.onServiceCreated(
-                _especialidadController.text,
-                _descripcionController.text,
-                int.parse(_precioController.text),
-                _obsController.text,
+                idEspecialidad: especialidadMap[_especialidadSeleccionada!]!,
+                descripcion: _descripcionController.text,
+                precioCliente: double.parse(_precioController.text),
+                fecha: "${_fechaSeleccionada!.year}-${_fechaSeleccionada!.month.toString().padLeft(2, '0')}-${_fechaSeleccionada!.day.toString().padLeft(2, '0')}",
+                franjaHoraria: _franjaSeleccionada!,
               );
+            } else if (!isDateSelected) {
+              setState(() {}); // para que se vea el error de la fecha
             }
           },
           child: Text('Publicar'),
@@ -362,4 +471,3 @@ class _CreateServiceDialogState extends State<CreateServiceDialog> {
     );
   }
 }
- 
