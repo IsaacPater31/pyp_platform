@@ -135,9 +135,10 @@ class _MainClientViewState extends State<MainClientView> {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    final List<Widget> _pages = [
+    final List<Widget> pages = [
       const MyServicesClientView(),
       const StatsClientView(),
       _OfertasYCrearServicioClient(
@@ -151,7 +152,7 @@ class _MainClientViewState extends State<MainClientView> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
       bottomNavigationBar: BottomAppBar(
         color: Colors.white,
         elevation: 20,
