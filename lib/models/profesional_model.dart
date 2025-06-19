@@ -23,6 +23,7 @@ class ProfesionalModel {
   final String? fotoDocumentoReverso;
   final String? certificadosEspecialidades;
   final String certificacionVerificada;
+  final List<String> especialidades; // <-- Nuevo campo
 
   ProfesionalModel({
     required this.id,
@@ -47,6 +48,7 @@ class ProfesionalModel {
     this.fotoDocumentoReverso,
     this.certificadosEspecialidades,
     required this.certificacionVerificada,
+    required this.especialidades,
   });
 
   factory ProfesionalModel.fromJson(Map<String, dynamic> json) {
@@ -73,6 +75,9 @@ class ProfesionalModel {
       fotoDocumentoReverso: json['foto_documento_reverso'],
       certificadosEspecialidades: json['certificados_especialidades'],
       certificacionVerificada: json['certificacion_verificada'] ?? 'no',
+      especialidades: (json['especialidades'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 }

@@ -90,7 +90,27 @@ class ProfileProfesionalView extends StatelessWidget {
                       title: Text('${profesional.departamento}, ${profesional.ciudad}'),
                       subtitle: Text('Código Postal: ${profesional.postalCode}'),
                     ),
-                    const Divider(),
+                    // ESPECIALIDADES (Chips)
+                    if (profesional.especialidades.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      ListTile(
+                        leading: const Icon(Icons.star_half, color: Color(0xFF6366F1)),
+                        title: const Text(
+                          'Especialidades',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                        ),
+                        subtitle: Wrap(
+                          spacing: 8,
+                          children: profesional.especialidades.map<Widget>(
+                            (esp) => Chip(
+                              label: Text(esp, style: const TextStyle(color: Color(0xFF1F2937))),
+                              backgroundColor: const Color(0xFFF3F4F6),
+                            ),
+                          ).toList(),
+                        ),
+                      ),
+                      const Divider(),
+                    ],
                     ListTile(
                       leading: const Icon(Icons.star, color: Colors.amber),
                       title: const Text(
