@@ -19,6 +19,9 @@ class ServicioModel {
   final String nombreCliente;
   final String ciudadCliente;
   final int yaOferto;
+  // --- Nuevos campos ---
+  final String telefonoCliente;
+  final int reportesCliente;
 
   ServicioModel({
     required this.id,
@@ -41,6 +44,8 @@ class ServicioModel {
     required this.nombreCliente,
     required this.ciudadCliente,
     required this.yaOferto,
+    required this.telefonoCliente,    // Nuevo
+    required this.reportesCliente,    // Nuevo
   });
 
   factory ServicioModel.fromJson(Map<String, dynamic> json) {
@@ -65,6 +70,8 @@ class ServicioModel {
       nombreCliente: json['nombre_cliente'] ?? '',
       ciudadCliente: json['ciudad_cliente'] ?? '',
       yaOferto: int.tryParse(json['ya_oferto'].toString()) ?? 0,
+      telefonoCliente: json['telefono_cliente'] ?? '',   // Nuevo
+      reportesCliente: int.tryParse(json['reportes_cliente'].toString()) ?? 0, // Nuevo
     );
   }
 }
