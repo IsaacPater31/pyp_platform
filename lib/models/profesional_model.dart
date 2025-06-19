@@ -1,4 +1,6 @@
-class ClientModel {
+// lib/models/profesional_model.dart
+
+class ProfesionalModel {
   final int id;
   final String tipoDocumento;
   final String numeroDocumento;
@@ -9,15 +11,20 @@ class ClientModel {
   final String departamento;
   final String ciudad;
   final String postalCode;
-  final String detalleDireccion;
-  final double? lat;
-  final double? lng;
-  final double? valoracionPromedio;
+  final String? valoracionPromedio;
   final int serviciosAdquiridos;
   final String fechaCreacion;
   final String estadoSuscripcion;
+  final String estadoValidacion;
+  final String estadoRegistro;
+  final String? fotoPerfil;
+  final String? certificadoAntecedentes;
+  final String? fotoDocumentoFrontal;
+  final String? fotoDocumentoReverso;
+  final String? certificadosEspecialidades;
+  final String certificacionVerificada;
 
-  ClientModel({
+  ProfesionalModel({
     required this.id,
     required this.tipoDocumento,
     required this.numeroDocumento,
@@ -28,17 +35,22 @@ class ClientModel {
     required this.departamento,
     required this.ciudad,
     required this.postalCode,
-    required this.detalleDireccion,
-    this.lat,
-    this.lng,
     this.valoracionPromedio,
     required this.serviciosAdquiridos,
     required this.fechaCreacion,
     required this.estadoSuscripcion,
+    required this.estadoValidacion,
+    required this.estadoRegistro,
+    this.fotoPerfil,
+    this.certificadoAntecedentes,
+    this.fotoDocumentoFrontal,
+    this.fotoDocumentoReverso,
+    this.certificadosEspecialidades,
+    required this.certificacionVerificada,
   });
 
-  factory ClientModel.fromJson(Map<String, dynamic> json) {
-    return ClientModel(
+  factory ProfesionalModel.fromJson(Map<String, dynamic> json) {
+    return ProfesionalModel(
       id: json['id'] ?? 0,
       tipoDocumento: json['tipo_documento'] ?? '',
       numeroDocumento: json['numero_documento'] ?? '',
@@ -49,15 +61,18 @@ class ClientModel {
       departamento: json['departamento'] ?? '',
       ciudad: json['ciudad'] ?? '',
       postalCode: json['postal_code'] ?? '',
-      detalleDireccion: json['detalle_direccion'] ?? '',
-      lat: json['lat'] != null ? double.tryParse(json['lat'].toString()) : null,
-      lng: json['lng'] != null ? double.tryParse(json['lng'].toString()) : null,
-      valoracionPromedio: json['valoracion_promedio'] != null
-          ? double.tryParse(json['valoracion_promedio'].toString())
-          : null,
+      valoracionPromedio: json['valoracion_promedio']?.toString(),
       serviciosAdquiridos: json['servicios_adquiridos'] ?? 0,
       fechaCreacion: json['fecha_creacion'] ?? '',
       estadoSuscripcion: json['estado_suscripcion'] ?? '',
+      estadoValidacion: json['estado_validacion'] ?? '',
+      estadoRegistro: json['estado_registro'] ?? '',
+      fotoPerfil: json['foto_perfil'],
+      certificadoAntecedentes: json['certificado_antecedentes'],
+      fotoDocumentoFrontal: json['foto_documento_frontal'],
+      fotoDocumentoReverso: json['foto_documento_reverso'],
+      certificadosEspecialidades: json['certificados_especialidades'],
+      certificacionVerificada: json['certificacion_verificada'] ?? 'no',
     );
   }
 }
