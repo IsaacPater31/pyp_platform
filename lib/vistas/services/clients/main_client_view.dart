@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pyp_platform/providers/user_provider.dart';
-import 'package:pyp_platform/controladores/services/clientmain_controller.dart'; // Importa el controlador
+import 'package:pyp_platform/controladores/services/clientmain_controller.dart';
 import 'myservices_client_view.dart';
 import 'stats_client_view.dart';
 import 'news_client.dart';
 import 'profile_client_view.dart';
 import 'package:pyp_platform/vistas/services/clients/page_container.dart';
 import 'package:pyp_platform/vistas/services/clients/bottom_menu_icon.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MainClientView extends StatefulWidget {
   const MainClientView({super.key});
@@ -17,21 +18,7 @@ class MainClientView extends StatefulWidget {
 }
 
 class _MainClientViewState extends State<MainClientView> {
-  int _selectedIndex = 2; // Por defecto en "Nuevo Servicio"
-  final List<Map<String, Object?>> _ofertas = [
-    {
-      'profesional': 'Laura Ríos',
-      'especialidad': 'Limpieza',
-      'valor': 25000,
-      'comentario': 'Incluyo materiales.',
-    },
-    {
-      'profesional': 'Superman',
-      'especialidad': 'Planchado',
-      'valor': 30000,
-      'comentario': 'Solo disponible en la tarde.',
-    },
-  ];
+  int _selectedIndex = 2;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -53,7 +40,7 @@ class _MainClientViewState extends State<MainClientView> {
     );
   }
 
-  void _showCreateServiceForm(BuildContext context) {
+  void _showCreateServiceForm(BuildContext context, VoidCallback onCreated) {
     showDialog(
       context: context,
       builder: (context) => CreateServiceDialog(
@@ -64,7 +51,7 @@ class _MainClientViewState extends State<MainClientView> {
           required String fecha,
           required String franjaHoraria,
         }) async {
-          Navigator.pop(context); // Cierra el dialog
+          Navigator.pop(context);
 
           final userProvider = Provider.of<UserProvider>(context, listen: false);
           final idCliente = userProvider.userId ?? 0;
@@ -86,65 +73,22 @@ class _MainClientViewState extends State<MainClientView> {
                   : 'Error al publicar el servicio. Intenta de nuevo.'),
             ),
           );
+          onCreated();
         },
       ),
     );
   }
 
-  void _regatearOferta(int index) async {
-    final controller = TextEditingController();
-    final result = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Proponer nuevo precio'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: 'Nuevo valor en pesos'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final value = int.tryParse(controller.text);
-              Navigator.pop(context, value);
-            },
-            child: Text('Enviar'),
-          ),
-        ],
-      ),
-    );
-
-    if (result != null) {
-      setState(() {
-        _ofertas.add({
-          'profesional': _ofertas[index]['profesional'],
-          'especialidad': _ofertas[index]['especialidad'],
-          'valor': result,
-          'comentario': '¡Nuevo precio propuesto por el cliente!',
-        });
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Nuevo precio propuesto al profesional')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_local_variable
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     final List<Widget> pages = [
       const MyServicesClientView(),
       const StatsClientView(),
-      _OfertasYCrearServicioClient(
-        ofertas: _ofertas,
-        onCrearServicio: () => _showCreateServiceForm(context),
-        onRegatear: _regatearOferta,
+      OfertasYCrearServicioClient(
+        idCliente: userProvider.userId ?? 0,
+        onCrearServicio: (VoidCallback onCreated) => _showCreateServiceForm(context, onCreated),
       ),
       const NewsClientView(),
       const ProfileClientView(),
@@ -199,16 +143,61 @@ class _MainClientViewState extends State<MainClientView> {
 }
 
 // ----------- Página central (Ofertas y crear servicio) ------------
-class _OfertasYCrearServicioClient extends StatelessWidget {
-  final List<Map<String, Object?>> ofertas;
-  final VoidCallback onCrearServicio;
-  final Function(int) onRegatear;
+class OfertasYCrearServicioClient extends StatefulWidget {
+  final int idCliente;
+  final void Function(VoidCallback onCreated) onCrearServicio;
 
-  const _OfertasYCrearServicioClient({
-    required this.ofertas,
+  const OfertasYCrearServicioClient({
+    required this.idCliente,
     required this.onCrearServicio,
-    required this.onRegatear,
+    super.key,
   });
+
+  @override
+  State<OfertasYCrearServicioClient> createState() => _OfertasYCrearServicioClientState();
+}
+
+class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClient> {
+  late Future<List<Map<String, dynamic>>> _ofertasFuturo;
+
+  @override
+  void initState() {
+    super.initState();
+    _ofertasFuturo = ClientMainController().obtenerOfertasCliente(widget.idCliente);
+  }
+
+  Future<void> _refreshOfertas() async {
+    setState(() {
+      _ofertasFuturo = ClientMainController().obtenerOfertasCliente(widget.idCliente);
+    });
+  }
+
+  void _showOfertaDetalles(Map<String, dynamic> oferta) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 500,
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              child: Scrollbar(
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: OfertaDetallesDialog(oferta: oferta),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +208,7 @@ class _OfertasYCrearServicioClient extends StatelessWidget {
         child: Column(
           children: [
             ElevatedButton.icon(
-              onPressed: onCrearServicio,
+              onPressed: () => widget.onCrearServicio(_refreshOfertas),
               icon: Icon(Icons.add_box_rounded),
               label: Text('Crear nuevo servicio'),
               style: ElevatedButton.styleFrom(
@@ -232,68 +221,222 @@ class _OfertasYCrearServicioClient extends StatelessWidget {
             ),
             SizedBox(height: 20),
             Expanded(
-              child: ofertas.isEmpty
-                  ? Center(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _ofertasFuturo,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(
                       child: Text(
                         "No tienes ofertas activas por ahora.",
                         style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
                         textAlign: TextAlign.center,
                       ),
-                    )
-                  : ListView.separated(
-                      itemCount: ofertas.length,
+                    );
+                  }
+                  final ofertas = snapshot.data!;
+                  return RefreshIndicator(
+                    onRefresh: _refreshOfertas,
+                    child: ListView.separated(
                       separatorBuilder: (_, __) => SizedBox(height: 16),
+                      itemCount: ofertas.length,
                       itemBuilder: (context, index) {
                         final oferta = ofertas[index];
-                        final profesional = oferta['profesional'] as String? ?? "?";
-                        final especialidad = oferta['especialidad'] as String? ?? "?";
-                        final valor = oferta['valor'] as int? ?? 0;
-                        final comentario = oferta['comentario'] as String? ?? "";
+                        final profesional = oferta['nombre_profesional'] as String? ?? "?";
+                        final fotoPerfilUrl = oferta['foto_perfil_url'] as String?;
+                        final certificacion = oferta['certificacion_verificada'] == 'si';
+                        final valoracion = oferta['valoracion_profesional']?.toString() ?? "-";
+                        final reportes = oferta['reportes_profesional']?.toString() ?? "0";
 
                         return Card(
-                          elevation: 3,
+                          elevation: 4,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                             leading: CircleAvatar(
+                              radius: 28,
                               backgroundColor: Color(0xFF1F2937),
                               foregroundColor: Colors.white,
-                              child: Text(profesional.isNotEmpty ? profesional[0] : "?"),
+                              backgroundImage: (fotoPerfilUrl != null && fotoPerfilUrl.isNotEmpty)
+                                  ? NetworkImage(fotoPerfilUrl)
+                                  : null,
+                              child: (fotoPerfilUrl == null || fotoPerfilUrl.isEmpty)
+                                  ? Text(
+                                      profesional.isNotEmpty ? profesional[0] : "?",
+                                      style: TextStyle(fontSize: 24),
+                                    )
+                                  : null,
                             ),
-                            title: Text('$profesional ($especialidad)'),
-                            subtitle: Text('Valor ofrecido: \$$valor\n$comentario'),
-                            isThreeLine: true,
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            title: Row(
                               children: [
-                                IconButton(
-                                  icon: Icon(Icons.check_circle, color: Colors.green),
-                                  onPressed: () {
-                                    // Lógica para aceptar la oferta
-                                  },
+                                Expanded(
+                                  child: Text(
+                                    profesional,
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
                                 ),
-                                IconButton(
-                                  icon: Icon(Icons.clear, color: Colors.red),
-                                  onPressed: () {
-                                    // Lógica para rechazar la oferta
-                                  },
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.price_change_rounded, color: Colors.orange),
-                                  tooltip: "Regatear",
-                                  onPressed: () => onRegatear(index),
-                                ),
+                                if (certificacion)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 6.0),
+                                    child: Tooltip(
+                                      message: "Certificación verificada",
+                                      child: Icon(Icons.verified, color: Colors.blue, size: 20),
+                                    ),
+                                  ),
                               ],
                             ),
-                            onTap: () {
-                              // Navegar al perfil del profesional si lo deseas
-                            },
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 6.0),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.star, color: Colors.amber, size: 16),
+                                  Text(' $valoracion ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  Icon(Icons.report, color: Colors.red, size: 16),
+                                  Text(' $reportes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  Spacer(),
+                                  IconButton(
+                                    icon: Icon(Icons.check_circle, color: Colors.green, size: 26),
+                                    tooltip: "Aceptar",
+                                    onPressed: () {
+                                      // Acción aceptar
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.clear, color: Colors.red, size: 26),
+                                    tooltip: "Rechazar",
+                                    onPressed: () {
+                                      // Acción rechazar
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.price_change_rounded, color: Colors.orange, size: 26),
+                                    tooltip: "Regatear",
+                                    onPressed: () {
+                                      // Acción regatear
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            onTap: () => _showOfertaDetalles(oferta),
                           ),
                         );
                       },
                     ),
+                  );
+                },
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// --------- Dialog para mostrar detalles de la oferta ---------
+class OfertaDetallesDialog extends StatelessWidget {
+  final Map<String, dynamic> oferta;
+
+  const OfertaDetallesDialog({required this.oferta, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final profesional = oferta['nombre_profesional'] ?? "?";
+    final especialidad = oferta['nombre_especialidad'] ?? "?";
+    final valor = oferta['precio_ofertado'] ?? "-";
+    final estado = oferta['estado_oferta'] ?? "-";
+    final fotoPerfilUrl = oferta['foto_perfil_url'] as String?;
+    final certificacion = oferta['certificacion_verificada'] == 'si';
+    final valoracion = oferta['valoracion_profesional']?.toString() ?? "-";
+    final reportes = oferta['reportes_profesional']?.toString() ?? "0";
+    final descripcion = oferta['descripcion_servicio'] ?? "-";
+    final fechaServicio = oferta['fecha_servicio'] ?? "-";
+    final telefono = oferta['telefono_profesional'] ?? "-";
+    final email = oferta['email_profesional'] ?? "-";
+
+    // Usar SingleChildScrollView para responsividad y evitar overflow
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 40,
+            backgroundColor: Color(0xFF1F2937),
+            foregroundColor: Colors.white,
+            backgroundImage: (fotoPerfilUrl != null && fotoPerfilUrl.isNotEmpty)
+                ? NetworkImage(fotoPerfilUrl)
+                : null,
+            child: (fotoPerfilUrl == null || fotoPerfilUrl.isEmpty)
+                ? Text(
+                    profesional.isNotEmpty ? profesional[0] : "?",
+                    style: TextStyle(fontSize: 32),
+                  )
+                : null,
+          ),
+          SizedBox(height: 16),
+          Text(
+            profesional,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+          Text(
+            especialidad,
+            style: TextStyle(color: Colors.grey[700], fontSize: 16),
+          ),
+          SizedBox(height: 12),
+          if (certificacion)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.verified, color: Colors.blue, size: 20),
+                SizedBox(width: 4),
+                Text("Certificación verificada", style: TextStyle(color: Colors.blue)),
+              ],
+            ),
+          SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.star, color: Colors.amber, size: 18),
+              Text(' $valoracion   ', style: TextStyle(fontWeight: FontWeight.bold)),
+              Icon(Icons.report, color: Colors.red, size: 18),
+              Text(' $reportes', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          Divider(height: 32),
+          ListTile(
+            leading: Icon(Icons.description),
+            title: Text("Descripción"),
+            subtitle: Text(descripcion),
+          ),
+          ListTile(
+            leading: Icon(Icons.calendar_today),
+            title: Text("Fecha del servicio"),
+            subtitle: Text(fechaServicio),
+          ),
+          ListTile(
+            leading: Icon(Icons.attach_money),
+            title: Text("Valor ofertado"),
+            subtitle: Text('\$$valor'),
+          ),
+          ListTile(
+            leading: Icon(Icons.info_outline),
+            title: Text("Estado de la oferta"),
+            subtitle: Text(estado),
+          ),
+          ListTile(
+            leading: Icon(Icons.phone),
+            title: Text("Teléfono"),
+            subtitle: Text(telefono),
+          ),
+          ListTile(
+            leading: Icon(Icons.email),
+            title: Text("Correo"),
+            subtitle: Text(email),
+          ),
+        ],
       ),
     );
   }

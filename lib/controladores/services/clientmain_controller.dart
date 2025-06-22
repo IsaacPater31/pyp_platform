@@ -25,46 +25,67 @@ class ClientMainController {
       return null;
     }
   }
-          Future<bool> crearServicio({
-          required int idCliente,
-          required int idEspecialidad,
-          required String descripcion,
-          required double precioCliente,
-          required String fecha,
-          required String franjaHoraria,
-          String? observaciones,
-        }) async {
-          final url = Uri.parse('$baseUrl/client_create_service.php');
-          try {
-            // Construir el cuerpo de la solicitud
-            final Map<String, dynamic> body = {
-              'id_cliente': idCliente,
-              'id_especialidad': idEspecialidad,
-              'descripcion': descripcion,
-              'precio_cliente': precioCliente,
-              'fecha': fecha,
-              'franja_horaria': franjaHoraria,
-            };
 
-            // Solo incluye observaciones si se proporcionó
-            if (observaciones != null && observaciones.trim().isNotEmpty) {
-              body['observaciones'] = observaciones;
-            }
+  Future<bool> crearServicio({
+    required int idCliente,
+    required int idEspecialidad,
+    required String descripcion,
+    required double precioCliente,
+    required String fecha,
+    required String franjaHoraria,
+    String? observaciones,
+  }) async {
+    final url = Uri.parse('$baseUrl/client_create_service.php');
+    try {
+      final Map<String, dynamic> body = {
+        'id_cliente': idCliente,
+        'id_especialidad': idEspecialidad,
+        'descripcion': descripcion,
+        'precio_cliente': precioCliente,
+        'fecha': fecha,
+        'franja_horaria': franjaHoraria,
+      };
 
-            final response = await http.post(
-              url,
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode(body),
-            );
+      if (observaciones != null && observaciones.trim().isNotEmpty) {
+        body['observaciones'] = observaciones;
+      }
 
-            final data = json.decode(response.body);
-            return data['success'] == true;
-          } catch (e) {
-            print('Error al crear servicio: $e');
-            return false;
-          }
-        }
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
 
+      final data = json.decode(response.body);
+      return data['success'] == true;
+    } catch (e) {
+      print('Error al crear servicio: $e');
+      return false;
+    }
+  }
 
-  
+  // NUEVO: Obtener ofertas de los servicios del cliente
+  Future<List<Map<String, dynamic>>> obtenerOfertasCliente(int idCliente) async {
+    final url = Uri.parse('$baseUrl/ofertas_cliente.php?id_cliente=$idCliente');
+    final archivosUrl = dotenv.env['ARCHIVOS_URL'] ?? '';
+    try {
+      final response = await http.get(url);
+      final data = json.decode(response.body);
+
+      if (data['success'] == true && data['data'] != null) {
+        final List ofertas = data['data'];
+        return ofertas.map<Map<String, dynamic>>((oferta) {
+          final foto = oferta['foto_perfil_profesional'];
+          oferta['foto_perfil_url'] = (foto != null && foto.toString().isNotEmpty)
+              ? '$archivosUrl/$foto'
+              : null;
+          return oferta as Map<String, dynamic>;
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error al obtener ofertas del cliente: $e');
+      return [];
+    }
+  }
 }
