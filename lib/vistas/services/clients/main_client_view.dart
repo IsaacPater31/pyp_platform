@@ -253,7 +253,7 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                         final estadoServicio = (oferta['estado_servicio'] ?? "-").toString();
 
                         String estadoTexto;
-                        Icon estadoIcono;
+                        Widget estadoIcono;
 
                         switch (estadoServicio) {
                           case 'esperando_profesional':
@@ -397,6 +397,48 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                     ),
                                   ],
                                 ),
+                                // SOLO para profesional_asignado muestra el valor acordado aquí (no en el diálogo)
+                                if (estadoServicio == 'profesional_asignado' && oferta['precio_acordado'] != null && oferta['precio_acordado'].toString().isNotEmpty) ...[
+                                  SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.attach_money, size: 18, color: Colors.green[700]),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        "Valor acordado: \$${oferta['precio_acordado']}",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.green[800],
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                                if (estadoServicio == 'profesional_asignado') ...[
+                                  SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        "Esperando lista de materiales",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.blueAccent,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
                             onTap: () => _showOfertaDetalles(oferta),
@@ -425,7 +467,7 @@ class OfertaDetallesDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final profesional = oferta['nombre_profesional'] ?? "?";
     final especialidad = oferta['nombre_especialidad'] ?? "?";
-    final valor = oferta['precio_ofertado'] ?? "-";
+    final valorOfertado = oferta['precio_ofertado'] ?? "-";
     final estado = oferta['estado_oferta'] ?? "-";
     final fotoPerfilUrl = oferta['foto_perfil_url'] as String?;
     final certificacion = oferta['certificacion_verificada'] == 'si';
@@ -435,8 +477,11 @@ class OfertaDetallesDialog extends StatelessWidget {
     final fechaServicio = oferta['fecha_servicio'] ?? "-";
     final telefono = oferta['telefono_profesional'] ?? "-";
     final email = oferta['email_profesional'] ?? "-";
+    final estadoServicio = oferta['estado_servicio'] ?? "-";
+    final precioAcordado = oferta['precio_acordado'];
 
-    // Usar SingleChildScrollView para responsividad y evitar overflow
+    final mostrarPrecioAcordado = estadoServicio == 'profesional_asignado' && precioAcordado != null && precioAcordado.toString() != '';
+
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -497,8 +542,12 @@ class OfertaDetallesDialog extends StatelessWidget {
           ),
           ListTile(
             leading: Icon(Icons.attach_money),
-            title: Text("Valor ofertado"),
-            subtitle: Text('\$$valor'),
+            title: Text(mostrarPrecioAcordado ? "Precio acordado" : "Valor ofertado"),
+            subtitle: Text(
+              mostrarPrecioAcordado
+                  ? '\$$precioAcordado'
+                  : '\$$valorOfertado',
+            ),
           ),
           ListTile(
             leading: Icon(Icons.info_outline),
