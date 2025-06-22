@@ -110,4 +110,22 @@ Future<Map<String, dynamic>> rechazarOferta(int idServicio, int idProfesional) a
     return {'success': false, 'message': 'Error al rechazar la oferta'};
   }
 }
+Future<Map<String, dynamic>> enviarListaMateriales(int idServicio, List<Map<String, dynamic>> materiales) async {
+  final url = Uri.parse('$baseUrl/enviar_lista_materiales.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'id_servicio': idServicio,
+        'materiales': materiales,
+      }),
+    );
+    final data = json.decode(response.body);
+    return data;
+  } catch (e) {
+    print('Error al enviar lista de materiales: $e');
+    return {'success': false, 'message': 'Error de conexión'};
+  }
+}
 }

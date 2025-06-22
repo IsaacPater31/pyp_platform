@@ -201,6 +201,7 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
     return PageContainer(
       title: "Tus Ofertas y Nuevo Servicio",
       child: Padding(
@@ -277,6 +278,12 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                             estadoIcono = Icon(Icons.hourglass_top, color: Colors.amber, size: 20);
                             break;
                         }
+
+                        // Suponiendo que tienes el id del profesional actual en una variable: int idProfesionalActual;
+                        // Y que en cada oferta tienes oferta['id_profesional']
+                        final bool esProfesionalAsignadoActual = 
+                            estadoServicio == 'profesional_asignado' &&
+                            oferta['id_profesional']?.toString() == userProvider.userId.toString();
 
                         return Card(
                           elevation: 4,
@@ -356,6 +363,21 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                         tooltip: "Regatear",
                                         onPressed: () {
                                           // Acción regatear (implementar)
+                                        },
+                                      ),
+                                    ] else if (esProfesionalAsignadoActual) ...[
+                                      ElevatedButton.icon(
+                                        icon: Icon(Icons.playlist_add, color: Colors.white),
+                                        label: Text("Generar lista de materiales"),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.blueAccent,
+                                          foregroundColor: Colors.white,
+                                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                          textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                        onPressed: () {
+                                          // Acción para generar lista de materiales
                                         },
                                       ),
                                     ] else if (estadoServicio == 'profesional_asignado') ...[

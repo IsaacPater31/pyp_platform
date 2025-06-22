@@ -146,6 +146,136 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
     );
   }
 
+  void mostrarDialogoMateriales(BuildContext context, ServicioModel servicio) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final nombreCtrl = TextEditingController();
+        final precioCtrl = TextEditingController();
+        final cantidadCtrl = TextEditingController(text: "1");
+        final List<Map<String, dynamic>> materiales = [];
+        double total = 0;
+
+        void recalcularTotal() {
+          total = materiales.fold(0, (sum, mat) => sum + (mat['precio_unitario'] * mat['cantidad']));
+        }
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            recalcularTotal();
+            return AlertDialog(
+              title: Text("Lista de materiales"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final mat in materiales)
+                      ListTile(
+                        title: Text(mat['nombre_material']),
+                        subtitle: Text(
+                          "Precio: \$${mat['precio_unitario']} x ${mat['cantidad']} = \$${(mat['precio_unitario'] * mat['cantidad']).toStringAsFixed(2)}",
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              materiales.remove(mat);
+                            });
+                          },
+                        ),
+                      ),
+                    Divider(),
+                    TextField(
+                      controller: nombreCtrl,
+                      decoration: InputDecoration(labelText: "Nombre del material"),
+                    ),
+                    TextField(
+                      controller: precioCtrl,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(labelText: "Precio unitario"),
+                    ),
+                    TextField(
+                      controller: cantidadCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: "Cantidad"),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.add),
+                      label: Text("Añadir material"),
+                      onPressed: () {
+                        final nombre = nombreCtrl.text.trim();
+                        final precio = double.tryParse(precioCtrl.text) ?? 0;
+                        final cantidad = int.tryParse(cantidadCtrl.text) ?? 1;
+                        if (nombre.isEmpty || precio <= 0 || cantidad <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Completa todos los campos correctamente")),
+                          );
+                          return;
+                        }
+                        setState(() {
+                          materiales.add({
+                            'nombre_material': nombre,
+                            'precio_unitario': precio,
+                            'cantidad': cantidad,
+                          });
+                          nombreCtrl.clear();
+                          precioCtrl.clear();
+                          cantidadCtrl.text = "1";
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          "Total: \$${total.toStringAsFixed(2)}",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green[800]),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text("Cerrar"),
+                ),
+                ElevatedButton(
+                  onPressed: materiales.isEmpty
+                      ? null
+                      : () async {
+                          // Aquí llamas al API para guardar la lista
+                          final result = await ProfessionalMainController().enviarListaMateriales(servicio.id, materiales);
+                          if (result['success'] == true) {
+                            Navigator.pop(context, materiales);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Lista enviada correctamente")),
+                            );
+                            // Opcional: refresca la lista de servicios
+                            setState(() {
+                              _serviciosFuturo = ProfessionalMainController().obtenerServiciosActivosProfesional(
+                                Provider.of<UserProvider>(context, listen: false).userId!,
+                              );
+                            });
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(result['message'] ?? "Error al enviar la lista")),
+                            );
+                          }
+                        },
+                  child: Text("Enviar lista"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget buildBotonesAccion({
     required VoidCallback onAceptar,
     required VoidCallback onOferta,
@@ -230,79 +360,206 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
                 final servicio = nuevos[index];
+                final esAsignado = servicio.estado == 'profesional_asignado';
+                final esEsperando = servicio.estado == 'esperando_profesional';
+                final esPendienteMateriales = servicio.estado == 'pendiente_materiales';
+
                 return Card(
                   elevation: 4,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  color: const Color(0xFFF3F4F6),
+                  color: esAsignado
+                      ? Colors.green[50]
+                      : esEsperando
+                          ? Colors.blue[50]
+                          : esPendienteMateriales
+                              ? Colors.amber[50]
+                              : const Color(0xFFF3F4F6),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                    child: Stack(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF1F2937),
-                                foregroundColor: Colors.white,
-                                child: Text(servicio.nombreCliente.isNotEmpty ? servicio.nombreCliente[0] : "?"),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            backgroundColor: esAsignado
+                                ? Colors.green[700]
+                                : esEsperando
+                                    ? Colors.blue[700]
+                                    : esPendienteMateriales
+                                        ? Colors.amber[700]
+                                        : const Color(0xFF1F2937),
+                            foregroundColor: Colors.white,
+                            child: esAsignado
+                                ? Icon(Icons.verified_user, color: Colors.white)
+                                : esEsperando
+                                    ? Icon(Icons.fiber_new, color: Colors.white)
+                                    : esPendienteMateriales
+                                        ? Icon(Icons.hourglass_top, color: Colors.white)
+                                        : Text(servicio.nombreCliente.isNotEmpty ? servicio.nombreCliente[0] : "?"),
+                          ),
+                          title: Text(
+                            '${servicio.nombreCliente} (${servicio.nombreEspecialidad})',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Pago propuesto: \$${servicio.precioCliente}\n${servicio.descripcion}',
+                                style: const TextStyle(fontSize: 13),
                               ),
-                              title: Text('${servicio.nombreCliente} (${servicio.nombreEspecialidad})',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                              subtitle: Text('Pago propuesto: \$${servicio.precioCliente}\n${servicio.descripcion}',
-                                  style: const TextStyle(fontSize: 13)),
-                              isThreeLine: true,
-                              onTap: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => AlertDialog(
-                                    title: const Text('Detalle del Servicio'),
-                                    content: SingleChildScrollView(
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Cliente: ${servicio.nombreCliente}'),
-                                          Text('Especialidad: ${servicio.nombreEspecialidad}'),
-                                          Text('Pago: \$${servicio.precioCliente}'),
-                                          Text('Descripción: ${servicio.descripcion}'),
-                                          Text('Ciudad: ${servicio.ciudadCliente}'),
-                                          const SizedBox(height: 8),
-                                          if (["profesional_asignado", "pendiente_materiales", "en_curso"].contains(servicio.estado))
-                                            Text('Teléfono: ${servicio.telefonoCliente}'),
-                                          Text('Reportes recibidos: ${servicio.reportesCliente}'),
-                                          const SizedBox(height: 8),
-                                          ElevatedButton.icon(
-                                            icon: const Icon(Icons.location_on),
-                                            label: const Text("Ver ubicación en el mapa"),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Color(0xFF1F2937),
-                                              foregroundColor: Colors.white,
-                                            ),
-                                            onPressed: () => mostrarMapa(context, servicio),
-                                          ),
-                                        ],
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  esAsignado
+                                      ? Icon(Icons.verified_user, color: Colors.green, size: 18)
+                                      : esEsperando
+                                          ? Icon(Icons.fiber_new, color: Colors.blue, size: 18)
+                                          : esPendienteMateriales
+                                              ? Icon(Icons.hourglass_top, color: Colors.amber, size: 18)
+                                              : Icon(Icons.hourglass_top, color: Colors.amber, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    esAsignado
+                                        ? "Has sido elegido"
+                                        : esEsperando
+                                            ? "Nuevo servicio"
+                                            : esPendienteMateriales
+                                                ? "Pendiente materiales"
+                                                : servicio.estado.replaceAll('_', ' ').replaceFirstMapped(RegExp(r'^[a-z]'), (m) => m[0]!.toUpperCase()),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: esAsignado
+                                          ? Colors.green[800]
+                                          : esEsperando
+                                              ? Colors.blue[800]
+                                              : esPendienteMateriales
+                                                  ? Colors.amber[800]
+                                                  : Color(0xFF1F2937),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (esPendienteMateriales) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
                                       ),
                                     ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('Cerrar'),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "Esperando los materiales requeridos",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.amber[800],
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                          isThreeLine: true,
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text('Detalle del Servicio'),
+                                content: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Cliente: ${servicio.nombreCliente}'),
+                                      Text('Especialidad: ${servicio.nombreEspecialidad}'),
+                                      Text('Pago: \$${servicio.precioCliente}'),
+                                      Text('Descripción: ${servicio.descripcion}'),
+                                      Text('Ciudad: ${servicio.ciudadCliente}'),
+                                      const SizedBox(height: 8),
+                                      if (["profesional_asignado", "pendiente_materiales", "en_curso"].contains(servicio.estado))
+                                        Text('Teléfono: ${servicio.telefonoCliente}'),
+                                      Text('Reportes recibidos: ${servicio.reportesCliente}'),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton.icon(
+                                        icon: const Icon(Icons.location_on),
+                                        label: const Text("Ver ubicación en el mapa"),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Color(0xFF1F2937),
+                                          foregroundColor: Colors.white,
+                                        ),
+                                        onPressed: () => mostrarMapa(context, servicio),
                                       ),
                                     ],
                                   ),
-                                );
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Cerrar'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        if (esAsignado) ...[
+                          Center(
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.playlist_add, color: Colors.white),
+                              label: const Text("Generar lista de materiales"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blueAccent,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () {
+                                mostrarDialogoMateriales(context, servicio);
                               },
                             ),
-                            const SizedBox(height: 32), // Espacio para los botones flotantes
-                          ],
-                        ),
-                        buildBotonesAccion(
-                          onAceptar: () => aceptarServicio(context, servicio),
-                          onOferta: () => ofertarServicio(context, servicio),
-                          disabled: servicio.yaOferto > 0,
-                        ),
+                          ),
+                        ] else if (esEsperando) ...[
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 8, bottom: 4, top: 8),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _MiniIconButton(
+                                    icon: Icons.check_circle,
+                                    color: Colors.green,
+                                    iconSize: 20,
+                                    btnSize: 38,
+                                    onTap: () => aceptarServicio(context, servicio),
+                                    tooltip: "Aceptar",
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _MiniIconButton(
+                                    icon: Icons.monetization_on,
+                                    color: Colors.orange,
+                                    iconSize: 20,
+                                    btnSize: 38,
+                                    onTap: () => ofertarServicio(context, servicio),
+                                    tooltip: "Ofertar",
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                        // No mostrar botones para pendiente_materiales
                       ],
                     ),
                   ),
