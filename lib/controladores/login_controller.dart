@@ -26,9 +26,9 @@ class LoginController {
     // Dependiendo del rol seleccionado, usamos la API correspondiente
     String apiUrl;
     if (selectedRole == 'cliente') {
-      apiUrl = '$baseUrl/login_client.php'; // URL de la API para cliente
+      apiUrl = '$baseUrl/login_clientes.php'; // URL de la API para cliente
     } else if (selectedRole == 'profesional') {
-      apiUrl = '$baseUrl/login_professional.php'; // URL de la API para profesional
+      apiUrl = '$baseUrl/login_profesionales.php'; // URL de la API para profesional
     } else {
       return {
         'success': false,

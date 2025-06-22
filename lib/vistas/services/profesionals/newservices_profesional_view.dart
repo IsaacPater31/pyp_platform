@@ -82,10 +82,20 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
     );
   }
 
-  void aceptarServicio(BuildContext context, ServicioModel servicio) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Servicio aceptado.')),
+  Future<void> aceptarServicio(BuildContext context, ServicioModel servicio) async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final result = await ProfessionalMainController().aceptarOferta(
+      servicio.id,
+      userProvider.userId!,
     );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result['message'] ?? 'Error al aceptar el servicio.')),
+    );
+    if (result['success'] == true) {
+      setState(() {
+        _serviciosFuturo = ProfessionalMainController().obtenerServiciosActivosProfesional(userProvider.userId!);
+      });
+    }
   }
 
   void ofertarServicio(BuildContext context, ServicioModel servicio) {
@@ -93,11 +103,11 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Ofertar otro precio'),
+        title: const Text('Ofertar otro precio'),
         content: TextField(
           controller: precioCtrl,
           keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: 'Nuevo precio'),
+          decoration: const InputDecoration(labelText: 'Nuevo precio'),
         ),
         actions: [
           TextButton(
@@ -105,11 +115,29 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
+              final userProvider = Provider.of<UserProvider>(context, listen: false);
+              final double? precio = double.tryParse(precioCtrl.text);
+              if (precio == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Ingrese un precio válido.')),
+                );
+                return;
+              }
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Oferta enviada: \$${precioCtrl.text}')),
+              final result = await ProfessionalMainController().ofertarPrecio(
+                servicio.id,
+                userProvider.userId!,
+                precio,
               );
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(result['message'] ?? 'Error al ofertar.')),
+              );
+              if (result['success'] == true) {
+                setState(() {
+                  _serviciosFuturo = ProfessionalMainController().obtenerServiciosActivosProfesional(userProvider.userId!);
+                });
+              }
             },
             child: const Text('Enviar'),
           ),
@@ -118,55 +146,39 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
     );
   }
 
-  void rechazarServicio(BuildContext context, ServicioModel servicio) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Servicio rechazado.')),
-    );
-  }
-
   Widget buildBotonesAccion({
     required VoidCallback onAceptar,
     required VoidCallback onOferta,
-    required VoidCallback onRechazar,
     bool disabled = false,
   }) {
-    // Súper mini y solo iconos
-    const double iconSize = 17.0;
-    const double btnSize = 30.0;
-    final isSmall = MediaQuery.of(context).size.width < 400;
-
-    List<Widget> botones = [
-      _MiniIconButton(
-        icon: Icons.check_circle,
-        color: Colors.green,
-        iconSize: iconSize,
-        btnSize: btnSize,
-        onTap: disabled ? null : onAceptar,
-        tooltip: "Aceptar",
+    // Iconos en la esquina inferior derecha del card
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8, bottom: 4, top: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _MiniIconButton(
+              icon: Icons.check_circle,
+              color: Colors.green,
+              iconSize: 20,
+              btnSize: 38,
+              onTap: disabled ? null : onAceptar,
+              tooltip: "Aceptar",
+            ),
+            const SizedBox(width: 8),
+            _MiniIconButton(
+              icon: Icons.monetization_on,
+              color: Colors.orange,
+              iconSize: 20,
+              btnSize: 38,
+              onTap: disabled ? null : onOferta,
+              tooltip: "Ofertar",
+            ),
+          ],
+        ),
       ),
-      _MiniIconButton(
-        icon: Icons.monetization_on,
-        color: Colors.orange,
-        iconSize: iconSize,
-        btnSize: btnSize,
-        onTap: disabled ? null : onOferta,
-        tooltip: "Ofertar",
-      ),
-      _MiniIconButton(
-        icon: Icons.cancel,
-        color: Colors.red,
-        iconSize: iconSize,
-        btnSize: btnSize,
-        onTap: disabled ? null : onRechazar,
-        tooltip: "Rechazar",
-      ),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-      child: isSmall
-          ? Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: botones)
-          : Row(mainAxisAlignment: MainAxisAlignment.center, children: botones),
     );
   }
 
@@ -192,7 +204,16 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
               );
             }
 
-            final nuevos = snapshot.data!.where((s) => s.estado == "esperando_profesional").toList();
+            final estadosPermitidos = [
+              "esperando_profesional",
+              "profesional_asignado",
+              "negociando",
+              "pendiente_materiales",
+              "en_curso"
+            ];
+            final nuevos = snapshot.data!
+                .where((s) => estadosPermitidos.contains(s.estado))
+                .toList();
 
             if (nuevos.isEmpty) {
               return Center(
@@ -215,67 +236,71 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
                   color: const Color(0xFFF3F4F6),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
                       children: [
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(
-                            backgroundColor: const Color(0xFF1F2937),
-                            foregroundColor: Colors.white,
-                            child: Text(servicio.nombreCliente.isNotEmpty ? servicio.nombreCliente[0] : "?"),
-                          ),
-                          title: Text('${servicio.nombreCliente} (${servicio.nombreEspecialidad})',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                          subtitle: Text('Pago propuesto: \$${servicio.precioCliente}\n${servicio.descripcion}',
-                              style: const TextStyle(fontSize: 13)),
-                          isThreeLine: true,
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => AlertDialog(
-                                title: const Text('Detalle del Servicio'),
-                                content: SingleChildScrollView(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Cliente: ${servicio.nombreCliente}'),
-                                      Text('Especialidad: ${servicio.nombreEspecialidad}'),
-                                      Text('Pago: \$${servicio.precioCliente}'),
-                                      Text('Descripción: ${servicio.descripcion}'),
-                                      Text('Ciudad: ${servicio.ciudadCliente}'),
-                                      const SizedBox(height: 8),
-                                      if (["profesional_asignado", "pendiente_materiales", "en_curso"].contains(servicio.estado))
-                                        Text('Teléfono: ${servicio.telefonoCliente}'),
-                                      Text('Reportes recibidos: ${servicio.reportesCliente}'),
-                                      const SizedBox(height: 8),
-                                      ElevatedButton.icon(
-                                        icon: const Icon(Icons.location_on),
-                                        label: const Text("Ver ubicación en el mapa"),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Color(0xFF1F2937),
-                                          foregroundColor: Colors.white,
-                                        ),
-                                        onPressed: () => mostrarMapa(context, servicio),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(
+                                backgroundColor: const Color(0xFF1F2937),
+                                foregroundColor: Colors.white,
+                                child: Text(servicio.nombreCliente.isNotEmpty ? servicio.nombreCliente[0] : "?"),
+                              ),
+                              title: Text('${servicio.nombreCliente} (${servicio.nombreEspecialidad})',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              subtitle: Text('Pago propuesto: \$${servicio.precioCliente}\n${servicio.descripcion}',
+                                  style: const TextStyle(fontSize: 13)),
+                              isThreeLine: true,
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: const Text('Detalle del Servicio'),
+                                    content: SingleChildScrollView(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Cliente: ${servicio.nombreCliente}'),
+                                          Text('Especialidad: ${servicio.nombreEspecialidad}'),
+                                          Text('Pago: \$${servicio.precioCliente}'),
+                                          Text('Descripción: ${servicio.descripcion}'),
+                                          Text('Ciudad: ${servicio.ciudadCliente}'),
+                                          const SizedBox(height: 8),
+                                          if (["profesional_asignado", "pendiente_materiales", "en_curso"].contains(servicio.estado))
+                                            Text('Teléfono: ${servicio.telefonoCliente}'),
+                                          Text('Reportes recibidos: ${servicio.reportesCliente}'),
+                                          const SizedBox(height: 8),
+                                          ElevatedButton.icon(
+                                            icon: const Icon(Icons.location_on),
+                                            label: const Text("Ver ubicación en el mapa"),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Color(0xFF1F2937),
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            onPressed: () => mostrarMapa(context, servicio),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Cerrar'),
                                       ),
                                     ],
                                   ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cerrar'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 32), // Espacio para los botones flotantes
+                          ],
                         ),
                         buildBotonesAccion(
                           onAceptar: () => aceptarServicio(context, servicio),
                           onOferta: () => ofertarServicio(context, servicio),
-                          onRechazar: () => rechazarServicio(context, servicio),
                           disabled: servicio.yaOferto > 0,
                         ),
                       ],
@@ -312,7 +337,7 @@ class _MiniIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isDisabled = onTap == null;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6.0),
+      padding: const EdgeInsets.symmetric(horizontal: 2.0),
       child: Ink(
         decoration: ShapeDecoration(
           color: isDisabled ? Colors.grey[400] : color.withOpacity(0.92),

@@ -49,4 +49,65 @@ class ProfessionalMainController {
       return [];
     }
   }
+  Future<Map<String, dynamic>> aceptarOferta(int idServicio, int idProfesional) async {
+  final url = Uri.parse('$baseUrl/aceptar_oferta.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'id_servicio': idServicio, 'id_profesional': idProfesional}),
+    );
+
+    final data = json.decode(response.body);
+    if (data['success'] == true) {
+      return {'success': true, 'message': data['message']};
+    }
+    return {'success': false, 'message': data['message']};
+  } catch (e) {
+    print('Error al aceptar oferta: $e');
+    return {'success': false, 'message': 'Error al aceptar la oferta'};
+  }
+}
+Future<Map<String, dynamic>> ofertarPrecio(int idServicio, int idProfesional, double precioOfertado) async {
+  final url = Uri.parse('$baseUrl/ofertar_precio.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'id_servicio': idServicio,
+        'id_profesional': idProfesional,
+        'precio_ofertado': precioOfertado
+      }),
+    );
+
+    final data = json.decode(response.body);
+    if (data['success'] == true) {
+      return {'success': true, 'message': data['message']};
+    }
+    return {'success': false, 'message': data['message']};
+  } catch (e) {
+    print('Error al ofertar precio: $e');
+    return {'success': false, 'message': 'Error al ofertar el precio'};
+  }
+}
+Future<Map<String, dynamic>> rechazarOferta(int idServicio, int idProfesional) async {
+  final url = Uri.parse('$baseUrl/rechazar_oferta.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'id_servicio': idServicio, 'id_profesional': idProfesional}),
+    );
+
+    final data = json.decode(response.body);
+    if (data['success'] == true) {
+      return {'success': true, 'message': data['message']};
+    }
+    return {'success': false, 'message': data['message']};
+  } catch (e) {
+    print('Error al rechazar oferta: $e');
+    return {'success': false, 'message': 'Error al rechazar la oferta'};
+  }
+}
 }
