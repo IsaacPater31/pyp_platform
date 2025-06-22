@@ -88,4 +88,20 @@ class ClientMainController {
       return [];
     }
   }
+
+  Future<bool> aceptarOferta(int idOferta) async {
+    final url = Uri.parse('$baseUrl/aceptar_ofertadeprofesional.php');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id_oferta': idOferta}),
+      );
+      final data = json.decode(response.body);
+      return data['success'] == true;
+    } catch (e) {
+      print('Error al aceptar oferta: $e');
+      return false;
+    }
+  }
 }

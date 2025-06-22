@@ -8,7 +8,7 @@ import 'news_client.dart';
 import 'profile_client_view.dart';
 import 'package:pyp_platform/vistas/services/clients/page_container.dart';
 import 'package:pyp_platform/vistas/services/clients/bottom_menu_icon.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MainClientView extends StatefulWidget {
   const MainClientView({super.key});
@@ -249,6 +249,34 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                         final certificacion = oferta['certificacion_verificada'] == 'si';
                         final valoracion = oferta['valoracion_profesional']?.toString() ?? "-";
                         final reportes = oferta['reportes_profesional']?.toString() ?? "0";
+                        final telefono = oferta['telefono_profesional']?.toString() ?? "";
+                        final estadoServicio = (oferta['estado_servicio'] ?? "-").toString();
+
+                        String estadoTexto;
+                        Icon estadoIcono;
+
+                        switch (estadoServicio) {
+                          case 'esperando_profesional':
+                            estadoTexto = "Nueva oferta";
+                            estadoIcono = Icon(Icons.fiber_new, color: Colors.blue, size: 20);
+                            break;
+                          case 'profesional_asignado':
+                            estadoTexto = "Profesional asignado";
+                            estadoIcono = Icon(Icons.verified_user, color: Colors.green, size: 20);
+                            break;
+                          case 'en_curso':
+                            estadoTexto = "En curso";
+                            estadoIcono = Icon(Icons.directions_car, color: Colors.deepPurple, size: 20);
+                            break;
+                          case 'finalizado':
+                            estadoTexto = "Servicio finalizado";
+                            estadoIcono = Icon(Icons.check_circle, color: Colors.grey, size: 20);
+                            break;
+                          default:
+                            estadoTexto = estadoServicio.replaceAll('_', ' ').replaceFirstMapped(RegExp(r'^[a-z]'), (m) => m[0]!.toUpperCase());
+                            estadoIcono = Icon(Icons.hourglass_top, color: Colors.amber, size: 20);
+                            break;
+                        }
 
                         return Card(
                           elevation: 4,
@@ -287,38 +315,89 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                   ),
                               ],
                             ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 6.0),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.star, color: Colors.amber, size: 16),
-                                  Text(' $valoracion ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                  Icon(Icons.report, color: Colors.red, size: 16),
-                                  Text(' $reportes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                  Spacer(),
-                                  IconButton(
-                                    icon: Icon(Icons.check_circle, color: Colors.green, size: 26),
-                                    tooltip: "Aceptar",
-                                    onPressed: () {
-                                      // Acción aceptar
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.clear, color: Colors.red, size: 26),
-                                    tooltip: "Rechazar",
-                                    onPressed: () {
-                                      // Acción rechazar
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.price_change_rounded, color: Colors.orange, size: 26),
-                                    tooltip: "Regatear",
-                                    onPressed: () {
-                                      // Acción regatear
-                                    },
-                                  ),
-                                ],
-                              ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.star, color: Colors.amber, size: 16),
+                                    Text(' $valoracion ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                    Icon(Icons.report, color: Colors.red, size: 16),
+                                    Text(' $reportes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                    Spacer(),
+                                    if (estadoServicio == 'esperando_profesional') ...[
+                                      IconButton(
+                                        icon: Icon(Icons.check_circle, color: Colors.green, size: 26),
+                                        tooltip: "Aceptar",
+                                        onPressed: () async {
+                                          final controller = ClientMainController();
+                                          final ok = await controller.aceptarOferta(oferta['id_oferta']);
+                                          if (ok) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Oferta aceptada correctamente')),
+                                            );
+                                            _refreshOfertas();
+                                          } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('No se pudo aceptar la oferta')),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.clear, color: Colors.red, size: 26),
+                                        tooltip: "Rechazar",
+                                        onPressed: () {
+                                          // Acción rechazar (implementar)
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.price_change_rounded, color: Colors.orange, size: 26),
+                                        tooltip: "Regatear",
+                                        onPressed: () {
+                                          // Acción regatear (implementar)
+                                        },
+                                      ),
+                                    ] else if (estadoServicio == 'profesional_asignado') ...[
+                                      IconButton(
+                                        icon: Icon(Icons.phone, color: Colors.green, size: 26),
+                                        tooltip: "Llamar",
+                                        onPressed: () {
+                                          final tel = telefono.replaceAll(RegExp(r'[^0-9]'), '');
+                                          if (tel.isNotEmpty) {
+                                            launchUrl(Uri.parse('tel:+57$tel'));
+                                          }
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.chat, color: Colors.teal, size: 26),
+                                        tooltip: "WhatsApp",
+                                        onPressed: () {
+                                          final tel = telefono.replaceAll(RegExp(r'[^0-9]'), '');
+                                          if (tel.isNotEmpty) {
+                                            launchUrl(Uri.parse('https://wa.me/57$tel'));
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    estadoIcono,
+                                    SizedBox(width: 8),
+                                    Text(
+                                      estadoTexto,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1F2937),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                             onTap: () => _showOfertaDetalles(oferta),
                           ),
