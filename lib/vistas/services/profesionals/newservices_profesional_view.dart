@@ -745,7 +745,7 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("¿El cliente pagó el servicio?"),
+          title: Text("Confirmar pago del servicio"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -755,47 +755,29 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
               ),
               SizedBox(height: 16),
               Text(
-                "Selecciona una opción según el estado del pago.",
+                "Presiona el botón si el cliente ya pagó.",
                 style: TextStyle(fontSize: 14, color: Colors.grey[700]),
               ),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () async {
-                // No pagado
-                final result = await ProfessionalMainController().finalizarServicio(servicio.id, pagado: false);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(result['message'] ?? "Servicio marcado como impago.")),
-                );
-                if (result['success'] == true) {
-                  // Refresca la lista
-                  final userProvider = Provider.of<UserProvider>(context, listen: false);
-                  (context as Element).markNeedsBuild();
-                }
-              },
-              child: Text("No pagado", style: TextStyle(color: Colors.red)),
-            ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green[700],
                 foregroundColor: Colors.white,
               ),
               onPressed: () async {
-                // Pagado
                 final result = await ProfessionalMainController().finalizarServicio(servicio.id, pagado: true);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(result['message'] ?? "Servicio finalizado.")),
                 );
                 if (result['success'] == true) {
-                  // Refresca la lista
                   final userProvider = Provider.of<UserProvider>(context, listen: false);
                   (context as Element).markNeedsBuild();
                 }
               },
-              child: Text("Pagado"),
+              child: Text("Pago"),
             ),
           ],
         );
