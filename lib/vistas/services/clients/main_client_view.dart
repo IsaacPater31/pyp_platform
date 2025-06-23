@@ -401,85 +401,7 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                           }
                                         },
                                       ),
-                                    ],
-                                  ],
-                                ),
-                                SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    estadoIcono,
-                                    SizedBox(width: 8),
-                                    Text(
-                                      estadoTexto,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1F2937),
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                // SOLO para profesional_asignado muestra el valor acordado aquí (no en el diálogo)
-                                if (estadoServicio == 'profesional_asignado' && oferta['precio_acordado'] != null && oferta['precio_acordado'].toString().isNotEmpty) ...[
-                                  SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.attach_money, size: 18, color: Colors.green[700]),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        "Valor acordado: \$${oferta['precio_acordado']}",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.green[800],
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                                if (estadoServicio == 'profesional_asignado') ...[
-                                  SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
-                                        ),
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        "Esperando lista de materiales",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.blueAccent,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                                if (estadoServicio == 'pendiente_materiales') ...[
-                                  SizedBox(height: 8),
-                                  ElevatedButton.icon(
-                                    icon: Icon(Icons.list_alt, color: Colors.white),
-                                    label: Text("Ver materiales requeridos"),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.amber[800],
-                                      foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                      textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    ),
-                                    onPressed: () async {
-                                      final materiales = await ClientMainController().obtenerMaterialesServicio(oferta['id_servicio']);
-                                      mostrarDialogoConfirmarMateriales(context, oferta['id_servicio'], materiales);
-                                    },
-                                  ),
-                                  Row(
-                                    children: [
+                                    ] else if (estadoServicio == 'en_curso') ...[
                                       IconButton(
                                         icon: Icon(Icons.phone, color: Colors.green, size: 26),
                                         tooltip: "Llamar",
@@ -501,6 +423,56 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                         },
                                       ),
                                     ],
+                                  ],
+                                ),
+                                SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    estadoIcono,
+                                    SizedBox(width: 8),
+                                    Text(
+                                      estadoTexto,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1F2937),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (estadoServicio == 'profesional_asignado') ...[
+                                  SizedBox(height: 10),
+                                  LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final isWide = constraints.maxWidth > 400;
+                                      return Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        mainAxisAlignment: isWide ? MainAxisAlignment.start : MainAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                                            ),
+                                          ),
+                                          SizedBox(width: 10),
+                                          Flexible(
+                                            child: Text(
+                                              "Esperando que el profesional mande la lista de materiales",
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.blueGrey[700],
+                                                fontSize: 13,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
                                   ),
                                 ],
                               ],
@@ -543,8 +515,8 @@ class OfertaDetallesDialog extends StatelessWidget {
     final email = oferta['email_profesional'] ?? "-";
     final estadoServicio = oferta['estado_servicio'] ?? "-";
     final precioAcordado = oferta['precio_acordado'];
+    final precioFinal = oferta['precio_final'];
 
-    final mostrarPrecioAcordado = estadoServicio == 'profesional_asignado' && precioAcordado != null && precioAcordado.toString() != '';
 
     return SingleChildScrollView(
       child: Column(
@@ -604,15 +576,25 @@ class OfertaDetallesDialog extends StatelessWidget {
             title: Text("Fecha del servicio"),
             subtitle: Text(fechaServicio),
           ),
-          ListTile(
-            leading: Icon(Icons.attach_money),
-            title: Text(mostrarPrecioAcordado ? "Precio acordado" : "Valor ofertado"),
-            subtitle: Text(
-              mostrarPrecioAcordado
-                  ? '\$$precioAcordado'
-                  : '\$$valorOfertado',
+          if (estadoServicio == 'en_curso' && precioFinal != null && precioFinal.toString() != '' && precioFinal.toString() != 'null' && precioFinal.toString() != '-') ...[
+            ListTile(
+              leading: Icon(Icons.attach_money),
+              title: Text("Precio final"),
+              subtitle: Text('\$${getPrecio(precioFinal)}'),
             ),
-          ),
+          ] else if (estadoServicio == 'profesional_asignado' && precioAcordado != null && precioAcordado.toString() != '' && precioAcordado.toString() != 'null' && precioAcordado.toString() != '-') ...[
+            ListTile(
+              leading: Icon(Icons.attach_money),
+              title: Text("Precio acordado"),
+              subtitle: Text('\$${getPrecio(precioAcordado)}'),
+            ),
+          ] else ...[
+            ListTile(
+              leading: Icon(Icons.attach_money),
+              title: Text("Valor ofertado"),
+              subtitle: Text('\$${getPrecio(valorOfertado)}'),
+            ),
+          ],
           ListTile(
             leading: Icon(Icons.info_outline),
             title: Text("Estado de la oferta"),
@@ -882,4 +864,10 @@ void mostrarDialogoConfirmarMateriales(BuildContext context, int idServicio, Lis
       );
     },
   );
+}
+
+String getPrecio(dynamic valor) {
+  if (valor == null) return "-";
+  if (valor is num) return valor.toStringAsFixed(2);
+  return valor.toString();
 }
