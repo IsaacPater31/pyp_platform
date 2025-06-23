@@ -559,7 +559,6 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
                             ),
                           ),
                         ],
-                        // No mostrar botones para pendiente_materiales
                       ],
                     ),
                   ),
@@ -597,7 +596,7 @@ class _MiniIconButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 2.0),
       child: Ink(
         decoration: ShapeDecoration(
-          color: isDisabled ? Colors.grey[400] : color.withOpacity(0.92),
+          color: isDisabled ? Colors.grey[400] : color.withAlpha(92),
           shape: const CircleBorder(),
         ),
         child: SizedBox(

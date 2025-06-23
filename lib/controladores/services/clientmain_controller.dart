@@ -104,4 +104,38 @@ class ClientMainController {
       return false;
     }
   }
+
+  Future<List<Map<String, dynamic>>> obtenerMaterialesServicio(int idServicio) async {
+    final url = Uri.parse('$baseUrl/materiales_servicio.php?id_servicio=$idServicio');
+    try {
+      final response = await http.get(url);
+      final data = json.decode(response.body);
+      if (data['success'] == true && data['materiales'] is List) {
+        return List<Map<String, dynamic>>.from(data['materiales']);
+      }
+      return [];
+    } catch (e) {
+      print('Error al obtener materiales: $e');
+      return [];
+    }
+  }
+
+  Future<bool> confirmarMaterialesCliente(int idServicio, List<Map<String, dynamic>> materiales) async {
+    final url = Uri.parse('$baseUrl/cliente_confirmar_materiales.php');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'id_servicio': idServicio,
+          'materiales': materiales,
+        }),
+      );
+      final data = json.decode(response.body);
+      return data['success'] == true;
+    } catch (e) {
+      print('Error al confirmar materiales: $e');
+      return false;
+    }
+  }
 }

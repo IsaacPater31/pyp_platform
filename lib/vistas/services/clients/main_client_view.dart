@@ -461,6 +461,48 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                     ],
                                   ),
                                 ],
+                                if (estadoServicio == 'pendiente_materiales') ...[
+                                  SizedBox(height: 8),
+                                  ElevatedButton.icon(
+                                    icon: Icon(Icons.list_alt, color: Colors.white),
+                                    label: Text("Ver materiales requeridos"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.amber[800],
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                      textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () async {
+                                      final materiales = await ClientMainController().obtenerMaterialesServicio(oferta['id_servicio']);
+                                      mostrarDialogoConfirmarMateriales(context, oferta['id_servicio'], materiales);
+                                    },
+                                  ),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.phone, color: Colors.green, size: 26),
+                                        tooltip: "Llamar",
+                                        onPressed: () {
+                                          final tel = telefono.replaceAll(RegExp(r'[^0-9]'), '');
+                                          if (tel.isNotEmpty) {
+                                            launchUrl(Uri.parse('tel:+57$tel'));
+                                          }
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.chat, color: Colors.teal, size: 26),
+                                        tooltip: "WhatsApp",
+                                        onPressed: () {
+                                          final tel = telefono.replaceAll(RegExp(r'[^0-9]'), '');
+                                          if (tel.isNotEmpty) {
+                                            launchUrl(Uri.parse('https://wa.me/57$tel'));
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
                             onTap: () => _showOfertaDetalles(oferta),
@@ -764,4 +806,80 @@ class _CreateServiceDialogState extends State<CreateServiceDialog> {
       ],
     );
   }
+}
+
+void mostrarDialogoConfirmarMateriales(BuildContext context, int idServicio, List<Map<String, dynamic>> materiales) {
+  List<bool> llevar = materiales.map((m) => m['llevar'] == 'si').toList();
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text("Confirma los materiales"),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (int i = 0; i < materiales.length; i++)
+                    CheckboxListTile(
+                      value: llevar[i],
+                      title: Text(materiales[i]['nombre_material']),
+                      subtitle: Text("Precio: \$${materiales[i]['precio_unitario']} x ${materiales[i]['cantidad']}"),
+                      onChanged: (v) {
+                        setState(() {
+                          llevar[i] = v ?? false;
+                        });
+                      },
+                    ),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.check),
+                    label: Text("Que el profesional lleve todo"),
+                    onPressed: () {
+                      setState(() {
+                        for (int i = 0; i < llevar.length; i++) {
+                          llevar[i] = true;
+                        }
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Cancelar"),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final materialesEnviar = [
+                    for (int i = 0; i < materiales.length; i++)
+                      {
+                        'id': materiales[i]['id'],
+                        'llevar': llevar[i] ? 'si' : 'no',
+                      }
+                  ];
+                  final ok = await ClientMainController().confirmarMaterialesCliente(idServicio, materialesEnviar);
+                  if (ok) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Materiales confirmados correctamente")),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Error al confirmar materiales")),
+                    );
+                  }
+                },
+                child: Text("Confirmar selección"),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
 }

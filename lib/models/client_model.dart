@@ -16,6 +16,7 @@ class ClientModel {
   final int serviciosAdquiridos;
   final String fechaCreacion;
   final String estadoSuscripcion;
+  final double? valorAcordado; // Nuevo campo
 
   ClientModel({
     required this.id,
@@ -35,6 +36,7 @@ class ClientModel {
     required this.serviciosAdquiridos,
     required this.fechaCreacion,
     required this.estadoSuscripcion,
+    this.valorAcordado, // Nuevo campo
   });
 
   factory ClientModel.fromJson(Map<String, dynamic> json) {
@@ -58,6 +60,9 @@ class ClientModel {
       serviciosAdquiridos: json['servicios_adquiridos'] ?? 0,
       fechaCreacion: json['fecha_creacion'] ?? '',
       estadoSuscripcion: json['estado_suscripcion'] ?? '',
+      valorAcordado: json['valor_acordado'] != null
+          ? double.tryParse(json['valor_acordado'].toString())
+          : null, // Nuevo campo
     );
   }
 }
