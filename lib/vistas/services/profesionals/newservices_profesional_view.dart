@@ -581,14 +581,57 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
                                   ),
                                 ),
                                 const SizedBox(height: 10),
-                                TextField(
-                                  decoration: InputDecoration(
-                                    labelText: "Ingresa el PIN que te da el cliente",
-                                    border: OutlineInputBorder(),
-                                    isDense: true,
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                  maxLength: 6,
+                                // Controlador para el PIN
+                                Builder(
+                                  builder: (context) {
+                                    final pinController = TextEditingController();
+                                    return Column(
+                                      children: [
+                                        TextField(
+                                          controller: pinController,
+                                          decoration: InputDecoration(
+                                            labelText: "Ingresa el PIN que te da el cliente",
+                                            border: OutlineInputBorder(),
+                                            isDense: true,
+                                          ),
+                                          keyboardType: TextInputType.number,
+                                          maxLength: 6,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        ElevatedButton.icon(
+                                          icon: Icon(Icons.vpn_key, color: Colors.white),
+                                          label: Text("Validar PIN"),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Color(0xFF1F2937),
+                                            foregroundColor: Colors.white,
+                                            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                            textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          ),
+                                          onPressed: () async {
+                                            final pin = pinController.text.trim();
+                                            if (pin.isEmpty) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text("Por favor ingresa el PIN.")),
+                                              );
+                                              return;
+                                            }
+                                            final result = await ProfessionalMainController().validarPinServicio(servicio.id, pin);
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text(result['message'] ?? 'Error al validar el PIN.')),
+                                            );
+                                            if (result['success'] == true) {
+                                              // Opcional: refresca la lista de servicios
+                                              setState(() {
+                                                final userProvider = Provider.of<UserProvider>(context, listen: false);
+                                                _serviciosFuturo = ProfessionalMainController().obtenerServiciosActivosProfesional(userProvider.userId!);
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 12),
                                 Row(

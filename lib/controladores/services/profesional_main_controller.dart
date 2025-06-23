@@ -142,4 +142,19 @@ Future<List<Map<String, dynamic>>> obtenerMaterialesServicio(int idServicio) asy
     return [];
   }
 }
+Future<Map<String, dynamic>> validarPinServicio(int idServicio, String pin) async {
+  final url = Uri.parse('$baseUrl/validar_pin_servicio.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'id_servicio': idServicio, 'pin': pin}),
+    );
+    final data = json.decode(response.body);
+    return data;
+  } catch (e) {
+    print('Error al validar PIN: $e');
+    return {'success': false, 'message': 'Error de conexión'};
+  }
+}
 }
