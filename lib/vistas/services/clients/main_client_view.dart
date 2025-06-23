@@ -422,6 +422,28 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                           }
                                         },
                                       ),
+                                    ] else if (estadoServicio == 'pendiente_materiales') ...[
+                                      ElevatedButton.icon(
+                                        icon: Icon(Icons.inventory_2, color: Colors.white),
+                                        label: Text("Ver materiales"),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.deepPurple,
+                                          foregroundColor: Colors.white,
+                                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                          textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                        onPressed: () async {
+                                          final materiales = await ClientMainController().obtenerMaterialesServicio(oferta['id_servicio']);
+                                          if (materiales.isEmpty) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text("No hay materiales para este servicio.")),
+                                            );
+                                            return;
+                                          }
+                                          mostrarDialogoConfirmarMateriales(context, oferta['id_servicio'], materiales);
+                                        },
+                                      ),
                                     ],
                                   ],
                                 ),
