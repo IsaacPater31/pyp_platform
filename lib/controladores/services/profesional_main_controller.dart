@@ -157,4 +157,22 @@ Future<Map<String, dynamic>> validarPinServicio(int idServicio, String pin) asyn
     return {'success': false, 'message': 'Error de conexión'};
   }
 }
+Future<Map<String, dynamic>> finalizarServicio(int idServicio, {required bool pagado}) async {
+  final url = Uri.parse('$baseUrl/finalizar_servicio.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'id_servicio': idServicio,
+        'pagado': pagado ? 'si' : 'no',
+      }),
+    );
+    final data = json.decode(response.body);
+    return data;
+  } catch (e) {
+    print('Error al finalizar servicio: $e');
+    return {'success': false, 'message': 'Error de conexión'};
+  }
+}
 }

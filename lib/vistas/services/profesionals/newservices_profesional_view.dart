@@ -407,8 +407,9 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Pago propuesto: \$${servicio.precioCliente}\n${servicio.descripcion}',
-                                style: const TextStyle(fontSize: 13),
+                                servicio.estado == 'en_curso'
+                                    ? 'Precio final: \$${servicio.precioFinal ?? servicio.precioCliente}'
+                                    : 'Pago: \$${servicio.precioCliente}',
                               ),
                               const SizedBox(height: 4),
                               Row(
@@ -482,7 +483,11 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
                                     children: [
                                       Text('Cliente: ${servicio.nombreCliente}'),
                                       Text('Especialidad: ${servicio.nombreEspecialidad}'),
-                                      Text('Pago: \$${servicio.precioCliente}'),
+                                      Text(
+                                        servicio.estado == 'en_curso'
+                                            ? 'Precio final: \$${servicio.precioFinal ?? servicio.precioCliente}'
+                                            : 'Pago: \$${servicio.precioCliente}',
+                                      ),
                                       Text('Descripción: ${servicio.descripcion}'),
                                       Text('Ciudad: ${servicio.ciudadCliente}'),
                                       const SizedBox(height: 8),
@@ -702,6 +707,24 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
                               ],
                             ),
                           ),
+                        ] else if (servicio.estado == 'en_curso') ...[
+                          const SizedBox(height: 12),
+                          Center(
+                            child: ElevatedButton.icon(
+                              icon: Icon(Icons.check_circle, color: Colors.white),
+                              label: Text("Finalizar servicio"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF1F2937),
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () {
+                                mostrarDialogoFinalizarServicio(context, servicio);
+                              },
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -712,6 +735,69 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
           },
         ),
       ),
+    );
+  }
+
+  void mostrarDialogoFinalizarServicio(BuildContext context, ServicioModel servicio) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("¿El cliente pagó el servicio?"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Precio a cobrar: \$${servicio.precioFinal ?? servicio.precioCliente}",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1F2937)),
+              ),
+              SizedBox(height: 16),
+              Text(
+                "Selecciona una opción según el estado del pago.",
+                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                // No pagado
+                final result = await ProfessionalMainController().finalizarServicio(servicio.id, pagado: false);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(result['message'] ?? "Servicio marcado como impago.")),
+                );
+                if (result['success'] == true) {
+                  // Refresca la lista
+                  final userProvider = Provider.of<UserProvider>(context, listen: false);
+                  (context as Element).markNeedsBuild();
+                }
+              },
+              child: Text("No pagado", style: TextStyle(color: Colors.red)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[700],
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                // Pagado
+                final result = await ProfessionalMainController().finalizarServicio(servicio.id, pagado: true);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(result['message'] ?? "Servicio finalizado.")),
+                );
+                if (result['success'] == true) {
+                  // Refresca la lista
+                  final userProvider = Provider.of<UserProvider>(context, listen: false);
+                  (context as Element).markNeedsBuild();
+                }
+              },
+              child: Text("Pagado"),
+            ),
+          ],
+        );
+      },
     );
   }
 }
