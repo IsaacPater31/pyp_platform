@@ -6,6 +6,7 @@ class ServicioModel {
   final String descripcion;
   final double precioCliente;
   final double? precioFinal;
+  final double? precioAcuerdo; // <-- Agrega esto
   final String fecha;
   final String franjaHoraria;
   final double direccionLat;
@@ -31,6 +32,7 @@ class ServicioModel {
     required this.descripcion,
     required this.precioCliente,
     required this.precioFinal,
+    required this.precioAcuerdo, // <-- Agrega esto
     required this.fecha,
     required this.franjaHoraria,
     required this.direccionLat,
@@ -57,6 +59,7 @@ class ServicioModel {
       descripcion: json['descripcion'] ?? '',
       precioCliente: double.parse(json['precio_cliente'].toString()),
       precioFinal: json['precio_final'] != null ? double.tryParse(json['precio_final'].toString()) : null,
+      precioAcuerdo: json['precio_acordado'] != null ? double.tryParse(json['precio_acordado'].toString()) : null, // <-- Agrega esto
       fecha: json['fecha'] ?? '',
       franjaHoraria: json['franja_horaria'] ?? '',
       direccionLat: json['direccion_lat'] != null ? double.parse(json['direccion_lat'].toString()) : 0.0,

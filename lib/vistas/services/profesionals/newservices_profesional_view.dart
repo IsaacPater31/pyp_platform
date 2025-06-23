@@ -408,8 +408,10 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
                             children: [
                               Text(
                                 servicio.estado == 'en_curso'
-                                    ? 'Precio final: \$${servicio.precioFinal ?? servicio.precioCliente}'
-                                    : 'Pago: \$${servicio.precioCliente}',
+                                    ? 'Precio final: \$${servicio.precioFinal ?? servicio.precioAcuerdo ?? servicio.precioCliente}'
+                                    : servicio.estado == 'pendiente_materiales'
+                                        ? 'Precio acordado: \$${servicio.precioFinal ?? servicio.precioAcuerdo ?? servicio.precioCliente}'
+                                        : 'Pago: \$${servicio.precioCliente}',
                               ),
                               const SizedBox(height: 4),
                               Row(
@@ -484,7 +486,7 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
                                       Text('Cliente: ${servicio.nombreCliente}'),
                                       Text('Especialidad: ${servicio.nombreEspecialidad}'),
                                       Text(
-                                        servicio.estado == 'en_curso'
+                                        (servicio.estado == 'en_curso' || servicio.estado == 'pendiente_materiales')
                                             ? 'Precio final: \$${servicio.precioFinal ?? servicio.precioCliente}'
                                             : 'Pago: \$${servicio.precioCliente}',
                                       ),
