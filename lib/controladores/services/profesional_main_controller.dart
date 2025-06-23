@@ -128,4 +128,18 @@ Future<Map<String, dynamic>> enviarListaMateriales(int idServicio, List<Map<Stri
     return {'success': false, 'message': 'Error de conexión'};
   }
 }
+Future<List<Map<String, dynamic>>> obtenerMaterialesServicio(int idServicio) async {
+  final url = Uri.parse('$baseUrl/materiales_servicio.php?id_servicio=$idServicio');
+  try {
+    final response = await http.get(url);
+    final data = json.decode(response.body);
+    if (data['success'] == true && data['materiales'] is List) {
+      return List<Map<String, dynamic>>.from(data['materiales']);
+    }
+    return [];
+  } catch (e) {
+    print('Error al obtener materiales: $e');
+    return [];
+  }
+}
 }

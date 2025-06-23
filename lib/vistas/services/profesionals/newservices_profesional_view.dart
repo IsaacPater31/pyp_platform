@@ -6,6 +6,7 @@ import 'package:pyp_platform/models/servicio_model.dart';
 import 'package:pyp_platform/providers/user_provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class NewServicesProfesionalView extends StatefulWidget {
   const NewServicesProfesionalView({super.key});
@@ -337,9 +338,9 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
             final estadosPermitidos = [
               "esperando_profesional",
               "profesional_asignado",
-              "negociando",
               "pendiente_materiales",
-              "en_curso"
+              "en_curso",
+              "validando_pin"
             ];
             final nuevos = snapshot.data!
                 .where((s) => estadosPermitidos.contains(s.estado))
@@ -556,6 +557,106 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
                                   ),
                                 ],
                               ),
+                            ),
+                          ),
+                        ] else if (servicio.estado == 'validando_pin') ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Color(0xFF1F2937).withOpacity(0.07),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Color(0xFF1F2937), width: 1.2),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Validar PIN del cliente",
+                                  style: TextStyle(
+                                    color: Color(0xFF1F2937),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 17,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                TextField(
+                                  decoration: InputDecoration(
+                                    labelText: "Ingresa el PIN que te da el cliente",
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  maxLength: 6,
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.phone, color: Colors.green, size: 26),
+                                      tooltip: "Llamar",
+                                      onPressed: () {
+                                        final tel = servicio.telefonoCliente.replaceAll(RegExp(r'[^0-9]'), '');
+                                        if (tel.isNotEmpty) {
+                                          launchUrl(Uri.parse('tel:+57$tel'));
+                                        }
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: Icon(Icons.chat, color: Colors.teal, size: 26),
+                                      tooltip: "WhatsApp",
+                                      onPressed: () {
+                                        final tel = servicio.telefonoCliente.replaceAll(RegExp(r'[^0-9]'), '');
+                                        if (tel.isNotEmpty) {
+                                          launchUrl(Uri.parse('https://wa.me/57$tel'));
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton.icon(
+                                  icon: Icon(Icons.inventory_2, color: Colors.white),
+                                  label: Text("Ver materiales a llevar"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color(0xFF1F2937),
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onPressed: () async {
+                                    final materiales = await ProfessionalMainController().obtenerMaterialesServicio(servicio.id);
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        final materialesLlevar = materiales.where((m) => m['llevar'] == 'si').toList();
+                                        return AlertDialog(
+                                          title: Text("Materiales que debes llevar"),
+                                          content: materialesLlevar.isEmpty
+                                              ? Text("No hay materiales que debas llevar para este servicio.")
+                                              : Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: materialesLlevar.map<Widget>((mat) => ListTile(
+                                                    title: Text(mat['nombre_material'] ?? ''),
+                                                    subtitle: Text("Cantidad: ${mat['cantidad']}  |  Precio: \$${mat['precio_unitario']}"),
+                                                  )).toList(),
+                                                ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: Text("Cerrar"),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ),
                         ],
