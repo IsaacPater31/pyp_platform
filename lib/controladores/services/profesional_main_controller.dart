@@ -175,4 +175,48 @@ Future<Map<String, dynamic>> finalizarServicio(int idServicio, {required bool pa
     return {'success': false, 'message': 'Error de conexión'};
   }
 }
+Future<List<ServicioModel>> obtenerServiciosFinalizadosProfesional(int idProfesional) async {
+  final url = Uri.parse('$baseUrl/servicios_finalizados_profesional.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'id_profesional': idProfesional}),
+    );
+    final data = json.decode(response.body);
+    if (data['success'] == true && data['data'] != null) {
+      List serviciosJson = data['data'];
+      return serviciosJson.map((json) => ServicioModel.fromJson(json)).toList();
+    }
+    return [];
+  } catch (e) {
+    print('Error al obtener servicios finalizados: $e');
+    return [];
+  }
+}
+Future<Map<String, dynamic>> comentarCalificarCliente({
+  required int idProfesional,
+  required int idCliente,
+  String comentario = '',
+  int? calificacion,
+}) async {
+  final url = Uri.parse('$baseUrl/comentar_calificar_cliente.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'id_profesional': idProfesional,
+        'id_cliente': idCliente,
+        'comentario': comentario,
+        'calificacion': calificacion,
+      }),
+    );
+    final data = json.decode(response.body);
+    return data;
+  } catch (e) {
+    print('Error al comentar/calificar cliente: $e');
+    return {'success': false, 'message': 'Error de conexión'};
+  }
+}
 }
