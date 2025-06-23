@@ -534,6 +534,33 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                             style: TextStyle(color: Color(0xFF1F2937), fontSize: 13),
                                             textAlign: TextAlign.center,
                                           ),
+                                          SizedBox(height: 12),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              IconButton(
+                                                icon: Icon(Icons.phone, color: Colors.green, size: 26),
+                                                tooltip: "Llamar",
+                                                onPressed: () {
+                                                  final tel = telefono.replaceAll(RegExp(r'[^0-9]'), '');
+                                                  if (tel.isNotEmpty) {
+                                                    launchUrl(Uri.parse('tel:+57$tel'));
+                                                  }
+                                                },
+                                              ),
+                                              SizedBox(width: 8),
+                                              IconButton(
+                                                icon: Icon(Icons.chat, color: Colors.teal, size: 26),
+                                                tooltip: "WhatsApp",
+                                                onPressed: () {
+                                                  final tel = telefono.replaceAll(RegExp(r'[^0-9]'), '');
+                                                  if (tel.isNotEmpty) {
+                                                    launchUrl(Uri.parse('https://wa.me/+57$tel'));
+                                                  }
+                                                },
+                                              ),
+                                            ],
+                                          ),
                                         ],
                                       ),
                                     ),
