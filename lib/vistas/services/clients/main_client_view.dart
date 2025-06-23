@@ -497,6 +497,48 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                     },
                                   ),
                                 ],
+                                if (estadoServicio == 'validando_pin' && oferta['pin_validacion'] != null && oferta['pin_validacion'].toString().isNotEmpty) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFF1F2937).withOpacity(0.07),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Color(0xFF1F2937), width: 1.2),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            "PIN de validación",
+                                            style: TextStyle(
+                                              color: Color(0xFF1F2937),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 17,
+                                              letterSpacing: 1.2,
+                                            ),
+                                          ),
+                                          SizedBox(height: 8),
+                                          SelectableText(
+                                            oferta['pin_validacion'].toString(),
+                                            style: TextStyle(
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blueAccent,
+                                              letterSpacing: 8,
+                                            ),
+                                          ),
+                                          SizedBox(height: 6),
+                                          Text(
+                                            "Dale este PIN al profesional cuando llegue.",
+                                            style: TextStyle(color: Color(0xFF1F2937), fontSize: 13),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                             onTap: () => _showOfertaDetalles(oferta),
