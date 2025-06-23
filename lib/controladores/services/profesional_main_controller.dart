@@ -219,4 +219,19 @@ Future<Map<String, dynamic>> comentarCalificarCliente({
     return {'success': false, 'message': 'Error de conexión'};
   }
 }
+Future<Map<String, dynamic>> reportarCliente(int idCliente) async {
+  final url = Uri.parse('$baseUrl/reportar_cliente.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'id_cliente': idCliente}),
+    );
+    final data = json.decode(response.body);
+    return data;
+  } catch (e) {
+    print('Error al reportar cliente: $e');
+    return {'success': false, 'message': 'Error de conexión'};
+  }
+}
 }

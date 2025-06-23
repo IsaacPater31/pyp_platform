@@ -712,18 +712,52 @@ class _NewServicesProfesionalViewState extends State<NewServicesProfesionalView>
                         ] else if (servicio.estado == 'en_curso') ...[
                           const SizedBox(height: 12),
                           Center(
-                            child: ElevatedButton.icon(
-                              icon: Icon(Icons.check_circle, color: Colors.white),
-                              label: Text("Finalizar servicio"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF1F2937),
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                                textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              onPressed: () {
-                                mostrarDialogoFinalizarServicio(context, servicio);
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final isWide = constraints.maxWidth > 400;
+                                return ConstrainedBox(
+                                  constraints: BoxConstraints(maxWidth: isWide ? 350 : double.infinity),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      ElevatedButton.icon(
+                                        icon: const Icon(Icons.warning, color: Colors.white),
+                                        label: const Text("Botón de pánico"),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red[700],
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.5),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          elevation: 2,
+                                        ),
+                                        onPressed: () async {
+                                          await launchUrl(Uri.parse('tel:123'));
+                                          final result = await ProfessionalMainController().reportarCliente(servicio.idCliente);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text(result['message'] ?? 'Reporte enviado')),
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ElevatedButton.icon(
+                                        icon: const Icon(Icons.check_circle, color: Colors.white),
+                                        label: const Text("Finalizar servicio"),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF1F2937),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.5),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          elevation: 2,
+                                        ),
+                                        onPressed: () {
+                                          mostrarDialogoFinalizarServicio(context, servicio);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                );
                               },
                             ),
                           ),
