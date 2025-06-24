@@ -62,26 +62,30 @@ class _MyServicesProfesionalViewState extends State<MyServicesProfesionalView> {
                         context: context,
                         builder: (context) => AlertDialog(
                           title: Text('Calificar y comentar cliente'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              DropdownButton<int>(
-                                value: calificacion,
-                                items: List.generate(5, (i) => i + 1)
-                                    .map((v) => DropdownMenuItem(value: v, child: Text('$v estrellas')))
-                                    .toList(),
-                                onChanged: (v) {
-                                  if (v != null) {
-                                    calificacion = v;
-                                  }
-                                },
-                              ),
-                              TextField(
-                                controller: comentarioCtrl,
-                                decoration: InputDecoration(labelText: 'Comentario'),
-                                maxLines: 3,
-                              ),
-                            ],
+                          content: StatefulBuilder(
+                            builder: (context, setState) => Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                DropdownButton<int>(
+                                  value: calificacion,
+                                  items: List.generate(5, (i) => i + 1)
+                                      .map((v) => DropdownMenuItem(value: v, child: Text('$v estrellas')))
+                                      .toList(),
+                                  onChanged: (v) {
+                                    if (v != null) {
+                                      setState(() {
+                                        calificacion = v;
+                                      });
+                                    }
+                                  },
+                                ),
+                                TextField(
+                                  controller: comentarioCtrl,
+                                  decoration: InputDecoration(labelText: 'Comentario'),
+                                  maxLines: 3,
+                                ),
+                              ],
+                            ),
                           ),
                           actions: [
                             TextButton(
