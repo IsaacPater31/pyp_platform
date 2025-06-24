@@ -237,7 +237,12 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                       ),
                     );
                   }
-                  final ofertas = snapshot.data!;
+                  final ofertas = snapshot.data!
+                      .where((oferta) =>
+                        oferta['estado_servicio'] != 'finalizado' &&
+                        oferta['estado_servicio'] != 'impago'
+                      )
+                      .toList();
                   return RefreshIndicator(
                     onRefresh: _refreshOfertas,
                     child: ListView.separated(
@@ -402,23 +407,29 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                         },
                                       ),
                                     ] else if (estadoServicio == 'en_curso') ...[
-                                      IconButton(
-                                        icon: Icon(Icons.phone, color: Colors.green, size: 26),
-                                        tooltip: "Llamar",
-                                        onPressed: () {
-                                          final tel = telefono.replaceAll(RegExp(r'[^0-9]'), '');
-                                          if (tel.isNotEmpty) {
-                                            launchUrl(Uri.parse('tel:+57$tel'));
-                                          }
-                                        },
-                                      ),
-                                      IconButton(
-                                        icon: Icon(Icons.chat, color: Colors.teal, size: 26),
-                                        tooltip: "WhatsApp",
-                                        onPressed: () {
-                                          final tel = telefono.replaceAll(RegExp(r'[^0-9]'), '');
-                                          if (tel.isNotEmpty) {
-                                            launchUrl(Uri.parse('https://wa.me/57$tel'));
+                                      ElevatedButton.icon(
+                                        icon: Icon(Icons.warning, color: Colors.white),
+                                        label: Text("Botón de pánico"),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red[700],
+                                          foregroundColor: Colors.white,
+                                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                          textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                        onPressed: () async {
+                                          // Llama al 911
+                                          await launchUrl(Uri.parse('tel:911'));
+                                          // Reporta al profesional
+                                          final ok = await ClientMainController().reportarProfesional(oferta['id_profesional']);
+                                          if (ok) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text("¡Profesional reportado!")),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text("No se pudo reportar al profesional.")),
+                                            );
                                           }
                                         },
                                       ),

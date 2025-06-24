@@ -138,4 +138,20 @@ class ClientMainController {
       return false;
     }
   }
+
+  Future<bool> reportarProfesional(int idProfesional) async {
+    final url = Uri.parse('$baseUrl/reportar_profesional.php');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id_profesional': idProfesional}),
+      );
+      final data = json.decode(response.body);
+      return data['success'] == true;
+    } catch (e) {
+      print('Error al reportar profesional: $e');
+      return false;
+    }
+  }
 }
