@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pyp_platform/controladores/client_register_controller.dart';
 import 'package:pyp_platform/vistas/client_register_location_view.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ClientRegisterView extends StatefulWidget {
   const ClientRegisterView({super.key});
@@ -12,6 +13,7 @@ class ClientRegisterView extends StatefulWidget {
 class _ClientRegisterViewState extends State<ClientRegisterView> {
   late ClientRegisterController controller;
   bool _obscurePassword = true;
+  bool _aceptaTerminos = false; // <-- NUEVO
 
   @override
   void initState() {
@@ -31,6 +33,12 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
   Future<void> _submitForm() async {
     FocusScope.of(context).unfocus();
     if (!controller.validateForm()) return;
+
+    // Validar términos y condiciones
+    if (!_aceptaTerminos) {
+      _showErrorMessage('Debes aceptar los términos y condiciones para continuar');
+      return;
+    }
 
     _showLoadingDialog();
 
@@ -111,6 +119,26 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
         backgroundColor: const Color(0xFFEF4444),
       ),
     );
+  }
+
+  Future<void> _launchTermsURL() async {
+    const url = 'https://pypplatform.liveblog365.com/TerminosCondiciones/';
+    final Uri launchUrlUri = Uri.parse(url);
+    try {
+      if (await canLaunchUrl(launchUrlUri)) {
+        await launchUrl(launchUrlUri, mode: LaunchMode.externalApplication);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir el enlace.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el enlace.')),
+      );
+    }
   }
 
   // ====== VALIDACIONES FRONTEND MEJORADAS ======
@@ -286,6 +314,34 @@ class _ClientRegisterViewState extends State<ClientRegisterView> {
                 icon: Icons.numbers_outlined,
                 keyboardType: TextInputType.number,
                 validator: (v) => _validateRequired(v, "código postal"),
+              ),
+              const SizedBox(height: 16),
+
+              // Checkbox de términos y condiciones
+              Row(
+                children: [
+                  Checkbox(
+                    value: _aceptaTerminos,
+                    onChanged: (value) {
+                      setState(() {
+                        _aceptaTerminos = value ?? false;
+                      });
+                    },
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Acepto los términos y condiciones',
+                      style: TextStyle(color: Colors.black54),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _launchTermsURL,
+                    child: const Text(
+                      'Leer Términos y Condiciones',
+                      style: TextStyle(color: Color(0xFF1F2937)),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
               SizedBox(
