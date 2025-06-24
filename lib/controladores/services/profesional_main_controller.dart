@@ -234,4 +234,22 @@ Future<Map<String, dynamic>> reportarCliente(int idCliente) async {
     return {'success': false, 'message': 'Error de conexión'};
   }
 }
+Future<Map<String, dynamic>> obtenerStatsProfesional(int idProfesional) async {
+  final url = Uri.parse('$baseUrl/stats_profesional.php');
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'id_profesional': idProfesional}),
+    );
+    final data = json.decode(response.body);
+    if (data['success'] == true && data['data'] != null) {
+      return data['data'];
+    }
+    return {};
+  } catch (e) {
+    print('Error al obtener estadísticas: $e');
+    return {};
+  }
+}
 }
