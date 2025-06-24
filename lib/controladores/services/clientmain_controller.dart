@@ -228,5 +228,28 @@ class ClientMainController {
       return {'success': false, 'message': 'Error de conexión'};
     }
   }
+
+  Future<Map<String, dynamic>> obtenerStatsCliente(int idCliente) async {
+  final url = Uri.parse('$baseUrl/stats_cliente.php');
+  try {
+    // Enviamos el id_cliente por POST como JSON
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'id_cliente': idCliente}),
+    );
+    final data = json.decode(response.body);
+
+    // Validamos respuesta exitosa
+    if (data['success'] == true && data['data'] != null) {
+      return Map<String, dynamic>.from(data['data']);
+    }
+    return {};
+  } catch (e) {
+    print('Error al obtener estadísticas del cliente: $e');
+    return {};
+  }
+}
+
   
 }
