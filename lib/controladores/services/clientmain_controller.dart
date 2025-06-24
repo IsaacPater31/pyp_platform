@@ -105,6 +105,22 @@ class ClientMainController {
     }
   }
 
+  Future<bool> rechazarOferta(int idOferta) async {
+    final url = Uri.parse('$baseUrl/rechazar_oferta.php');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id_oferta': idOferta}),
+      );
+      final data = json.decode(response.body);
+      return data['success'] == true;
+    } catch (e) {
+      print('Error al rechazar oferta: $e');
+      return false;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> obtenerMaterialesServicio(int idServicio) async {
     final url = Uri.parse('$baseUrl/materiales_servicio.php?id_servicio=$idServicio');
     try {
@@ -154,4 +170,21 @@ class ClientMainController {
       return false;
     }
   }
+
+  Future<bool> ofertarPrecioCliente(int idServicio, double nuevoPrecio) async {
+    final url = Uri.parse('$baseUrl/cliente_ofertar_precio.php');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id_servicio': idServicio, 'nuevo_precio': nuevoPrecio}),
+      );
+      final data = json.decode(response.body);
+      return data['success'] == true;
+    } catch (e) {
+      print('Error al ofertar precio: $e');
+      return false;
+    }
+  }
+  
 }

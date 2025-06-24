@@ -359,8 +359,19 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                       IconButton(
                                         icon: Icon(Icons.clear, color: Colors.red, size: 26),
                                         tooltip: "Rechazar",
-                                        onPressed: () {
-                                          // Acción rechazar (implementar)
+                                        onPressed: () async {
+                                          final controller = ClientMainController();
+                                          final ok = await controller.rechazarOferta(oferta['id_oferta']);
+                                          if (ok) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Oferta rechazada correctamente')),
+                                            );
+                                            _refreshOfertas();
+                                          } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('No se pudo rechazar la oferta')),
+                                            );
+                                          }
                                         },
                                       ),
                                       IconButton(
