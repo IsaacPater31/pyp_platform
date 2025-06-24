@@ -186,5 +186,47 @@ class ClientMainController {
       return false;
     }
   }
+
+  Future<List<Map<String, dynamic>>> obtenerServiciosFinalizadosCliente(int idCliente) async {
+  final url = Uri.parse('$baseUrl/servicios_finalizados_cliente.php?id_cliente=$idCliente');
+  try {
+    final response = await http.get(url);
+    final data = json.decode(response.body);
+    if (data['success'] == true && data['data'] != null) {
+      return List<Map<String, dynamic>>.from(data['data']);
+    }
+    return [];
+  } catch (e) {
+    print('Error al obtener servicios finalizados del cliente: $e');
+    return [];
+  }
+}
+
+
+  Future<Map<String, dynamic>> comentarCalificarProfesional({
+    required int idCliente,
+    required int idProfesional,
+    String comentario = '',
+    int? calificacion,
+  }) async {
+    final url = Uri.parse('$baseUrl/comentar_calificar_profesional.php');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'id_cliente': idCliente,
+          'id_profesional': idProfesional,
+          'comentario': comentario,
+          'calificacion': calificacion,
+        }),
+      );
+      final data = json.decode(response.body);
+      return data;
+    } catch (e) {
+      print('Error al comentar/calificar profesional: $e');
+      return {'success': false, 'message': 'Error de conexión'};
+    }
+  }
   
 }
