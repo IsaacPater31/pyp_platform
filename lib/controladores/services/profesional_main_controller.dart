@@ -252,4 +252,19 @@ Future<Map<String, dynamic>> obtenerStatsProfesional(int idProfesional) async {
     return {};
   }
 }
+Future<List<Map<String, dynamic>>> obtenerNoticias() async {
+  final url = Uri.parse('${dotenv.env['API_BASE_URL'] ?? 'http://api.local/apispyp'}/noticias.php');
+  try {
+    final response = await http.get(url);
+    final data = json.decode(response.body);
+    if (data['success'] == true && data['noticias'] is List) {
+      return List<Map<String, dynamic>>.from(data['noticias']);
+    }
+    return [];
+  } catch (e) {
+    print('Error al obtener noticias: $e');
+    return [];
+  }
+}
+
 }
