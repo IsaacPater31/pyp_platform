@@ -199,6 +199,53 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
     );
   }
 
+  Future<void> _mostrarDialogoOfertarPrecio(Map<String, dynamic> oferta) async {
+    final controller = TextEditingController();
+    final nuevoPrecio = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Ofertar nuevo precio"),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(labelText: "Nuevo precio (COP)"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancelar"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text.replaceAll(',', '.'));
+              if (value != null && value > 0) {
+                Navigator.pop(context, value);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Ingresa un precio válido')),
+                );
+              }
+            },
+            child: Text("Ofertar"),
+          ),
+        ],
+      ),
+    );
+    if (nuevoPrecio != null) {
+      final ok = await ClientMainController().ofertarPrecioCliente(oferta['id_servicio'], nuevoPrecio);
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Oferta enviada y ofertas previas eliminadas')),
+        );
+        _refreshOfertas();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo ofertar el precio')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -377,9 +424,7 @@ class _OfertasYCrearServicioClientState extends State<OfertasYCrearServicioClien
                                       IconButton(
                                         icon: Icon(Icons.price_change_rounded, color: Colors.orange, size: 26),
                                         tooltip: "Regatear",
-                                        onPressed: () {
-                                          // Acción regatear (implementar)
-                                        },
+                                        onPressed: () => _mostrarDialogoOfertarPrecio(oferta),
                                       ),
                                     ] else if (esProfesionalAsignadoActual) ...[
                                       ElevatedButton.icon(
