@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pyp_platform/vistas/login_view.dart';
 import 'package:pyp_platform/vistas/services/clients/page_container.dart';
 import 'package:pyp_platform/controladores/services/clientmain_controller.dart';
 import 'package:pyp_platform/models/client_model.dart';
@@ -168,6 +169,29 @@ class ProfileClientView extends StatelessWidget {
                       leading: Icon(Icons.calendar_today, color: Color(0xFF1F2937)),
                       title: Text('Miembro desde'),
                       subtitle: Text(cliente.fechaCreacion),
+                    ),
+                    const SizedBox(height: 32),
+                    Center(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.logout, color: Colors.white),
+                        label: const Text("Cerrar sesión"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () {
+                          Provider.of<UserProvider>(context, listen: false).logout();
+                          if (context.mounted) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const LoginView()),
+                              (route) => false,
+                            );
+                          }
+                        },
+                      ),
                     ),
                   ],
                 );
