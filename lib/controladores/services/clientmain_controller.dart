@@ -250,6 +250,31 @@ class ClientMainController {
     return {};
   }
 }
+Future<List<Map<String, dynamic>>> obtenerNoticias() async {
+  final url = Uri.parse('$baseUrl/noticias_list.php');
+  final archivosUrl = dotenv.env['ARCHIVOS_URL'] ?? '';
+  try {
+    final response = await http.get(url);
+    final data = json.decode(response.body);
+    if (data['success'] == true && data['noticias'] is List) {
+      // Añadir la URL completa de la imagen si la tienes en un subdominio/servidor estático
+      return List<Map<String, dynamic>>.from(
+        (data['noticias'] as List).map((noticia) {
+          if (noticia['imagen'] != null && noticia['imagen'].toString().isNotEmpty) {
+            noticia['imagen_url'] = '$archivosUrl/${noticia['imagen']}';
+          } else {
+            noticia['imagen_url'] = null;
+          }
+          return noticia;
+        })
+      );
+    }
+    return [];
+  } catch (e) {
+    print('Error al obtener noticias: $e');
+    return [];
+  }
+}
 
   
 }
